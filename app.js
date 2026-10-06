@@ -56,7 +56,8 @@ const TXT = {
     open: '예약됨', made: '제작 완료', picked: '픽업 완료', cancelled: '취소됨', oMade: '제작 완료', oPicked: '픽업 완료', oCancel: '예약 취소', oCancelQ: '이 예약을 취소할까요?', oReopen: '되돌리기',
     oNeed: '픽업 날짜와 케이크를 넣어주세요.', oSaved: '예약을 저장했어요.', oSoonToday: '오늘 픽업 {n}건', oSoonTomorrow: '내일 픽업 {n}건', oView: '예약 보기', oPickups: '케이크 픽업', oLog: '기록',
     cakeList: '케이크 목록', cakeListD: '예약할 때 고르는 케이크예요. 숨기면 목록에서 빠지지만 지난 예약에는 남아요.', cakeAdd: '케이크 추가', cakeNamePh: '새 케이크 이름', cakeHide: '숨기기', cakeShow: '다시 보이기',
-    push: '예약 알림', pushD: '픽업 전날 오후 5시와 당일 아침 8시에 이 기기로 알림이 와요. 아이폰·아이패드는 홈 화면에 추가한 앱에서 켜야 해요.', pushOn: '이 기기에서 알림 받는 중', pushOff: '이 기기는 알림이 꺼져 있어요', pushEnable: '이 기기에서 알림 받기',
+    push: '예약 알림', pushD: '케이크 픽업 전에 이 기기로 알림이 와요. 아이폰·아이패드는 홈 화면에 추가한 앱에서 켜야 해요.', pushDisable: '이 기기 알림 끄기', pushOffOk: '이 기기 알림을 껐어요.',
+    remWhen: '알림 시간 (사장만 바꿀 수 있어요)', remEve: '픽업 전날 알림', remMorn: '픽업 당일 알림', remEarly: '미리 알림', remNone: '없음', remDays: '{n}일 전', remHour: '{h}시', remNow: '지금 설정: {s}', pushOn: '이 기기에서 알림 받는 중', pushOff: '이 기기는 알림이 꺼져 있어요', pushEnable: '이 기기에서 알림 받기',
     pushOk: '알림을 켰어요.', pushDenied: '알림이 거부됐어요. 기기 설정에서 알림을 허용해주세요.', pushNeedHome: '아이폰·아이패드는 공유 → 홈 화면에 추가한 뒤, 그 아이콘으로 열어서 눌러주세요.', pushUnsupported: '이 브라우저는 알림을 지원하지 않아요.',
     noteBtn: '시간이 틀렸어요 · 메모 남기기', noteTitle: '정정 요청', notePh2: '예: 실제 출근은 9시였어요', noteSend: '보내기', noteSent: '사장님께 전달했어요.', noteLate: '시간이 지나서 보낼 수 없어요. 사장님께 직접 말해주세요.', noteOffline: '인터넷이 끊겨서 보내지 못했어요. 사장님께 직접 말해주세요.',
     reqTitle: '정정 요청', reqView: '기록 보기', reqDone: '처리 완료', reqDoneOk: '처리 완료로 표시했어요.', reqTag: '정정 요청',
@@ -134,7 +135,8 @@ const TXT = {
     open: 'Booked', made: 'Made', picked: 'Picked up', cancelled: 'Cancelled', oMade: 'Mark made', oPicked: 'Mark picked up', oCancel: 'Cancel order', oCancelQ: 'Cancel this order?', oReopen: 'Undo',
     oNeed: 'Enter a pickup date and at least one cake.', oSaved: 'Order saved.', oSoonToday: '{n} pickup(s) today', oSoonTomorrow: '{n} pickup(s) tomorrow', oView: 'View orders', oPickups: 'Cake pickups', oLog: 'History',
     cakeList: 'Cake list', cakeListD: 'The cakes offered when taking an order. Hidden cakes stay on past orders.', cakeAdd: 'Add cake', cakeNamePh: 'New cake name', cakeHide: 'Hide', cakeShow: 'Show',
-    push: 'Order reminders', pushD: 'This device gets a reminder at 5 pm the day before and 8 am on pickup day. On iPhone/iPad, turn it on from the home-screen app.', pushOn: 'Reminders on for this device', pushOff: 'Reminders off for this device', pushEnable: 'Get reminders on this device',
+    push: 'Order reminders', pushD: 'This device gets reminders before cake pickups. On iPhone/iPad, turn it on from the home-screen app.', pushDisable: 'Turn off on this device', pushOffOk: 'Reminders turned off on this device.',
+    remWhen: 'Reminder times (owner only)', remEve: 'Day before pickup', remMorn: 'Pickup day', remEarly: 'Early reminder', remNone: 'None', remDays: '{n} days before', remHour: '{h}:00', remNow: 'Current: {s}', pushOn: 'Reminders on for this device', pushOff: 'Reminders off for this device', pushEnable: 'Get reminders on this device',
     pushOk: 'Reminders turned on.', pushDenied: 'Notifications were blocked. Allow them in the device settings.', pushNeedHome: 'On iPhone/iPad: Share → Add to Home Screen, open the app from that icon, then tap this.', pushUnsupported: 'This browser does not support notifications.',
     noteBtn: 'Time is wrong · leave a note', noteTitle: 'Correction request', notePh2: 'e.g. I actually started at 9', noteSend: 'Send', noteSent: 'Sent to the owner.', noteLate: 'Too late to send. Please tell the owner directly.', noteOffline: 'No internet — not sent. Please tell the owner directly.',
     reqTitle: 'Correction requests', reqView: 'Open record', reqDone: 'Mark done', reqDoneOk: 'Marked as done.', reqTag: 'Correction',
@@ -437,8 +439,32 @@ async function pushEnable() {
   if (error) throw error;
   app.pushOn = true; toast(t('pushOk')); render();
 }
+async function pushDisable() {
+  const reg = await navigator.serviceWorker?.getRegistration();
+  const sub = await reg?.pushManager?.getSubscription();
+  if (sub) {
+    const { error } = inKiosk() ? await sb.rpc('kiosk_push_unsubscribe', { p_token: deviceToken(), p_endpoint: sub.endpoint }) : await sb.rpc('push_unsubscribe', { p_endpoint: sub.endpoint });
+    if (error) throw error;
+    await sub.unsubscribe();
+  }
+  app.pushOn = false; toast(t('pushOffOk')); render();
+}
+const remCfg = () => Object.assign({ eveOn: true, eveHour: 17, mornOn: true, mornHour: 8, earlyDays: 0 }, (D?.settings || {}).remind || {});
+const remSummary = () => { const r = remCfg(); return [r.earlyDays ? t('remDays', { n: r.earlyDays }) : '', r.eveOn ? `${t('remEve')} ${t('remHour', { h: r.eveHour })}` : '', r.mornOn ? `${t('remMorn')} ${t('remHour', { h: r.mornHour })}` : ''].filter(Boolean).join(' · ') || t('remNone'); };
+const remForm = () => {
+  if (inKiosk() || !D) return '';
+  const r = remCfg(), dis = isOwner() ? '' : 'disabled';
+  const hours = (from, to, v) => Array.from({ length: to - from + 1 }, (_, i) => from + i).map((h) => `<option value="${h}" ${+v === h ? 'selected' : ''}>${t('remHour', { h })}</option>`).join('');
+  return `<div class="set-group" style="border-top:1px dashed var(--line);padding-top:12px"><b style="font-size:13px;color:var(--muted)">${t('remWhen')}</b>
+    <div class="form">
+      <label class="f"><span class="check"><input type="checkbox" id="r-eve" ${r.eveOn ? 'checked' : ''} ${dis}> ${t('remEve')}</span><select id="r-eveh" ${dis}>${hours(12, 21, r.eveHour)}</select></label>
+      <label class="f"><span class="check"><input type="checkbox" id="r-morn" ${r.mornOn ? 'checked' : ''} ${dis}> ${t('remMorn')}</span><select id="r-mornh" ${dis}>${hours(6, 12, r.mornHour)}</select></label>
+      <label class="f">${t('remEarly')}<select id="r-early" ${dis}>${[0, 2, 3, 7].map((n) => `<option value="${n}" ${+r.earlyDays === n ? 'selected' : ''}>${n ? t('remDays', { n }) : t('remNone')}</option>`).join('')}</select></label>
+    </div></div>`;
+};
 const pushCard = () => `<div class="card pad set-group"><h3>${t('push')}</h3><p class="note">${t('pushD')}</p>
-  ${app.pushOn ? `<p><span class="pill on">✓</span> ${t('pushOn')}</p>` : `<p class="muted">${t('pushOff')}</p><div><button class="btn primary" data-act="pushEnable">${t('pushEnable')}</button></div>`}</div>`;
+  ${app.pushOn ? `<p><span class="pill on">✓</span> ${t('pushOn')}</p><div><button class="btn" data-act="pushDisable">${t('pushDisable')}</button></div>` : `<p class="muted">${t('pushOff')}</p><div><button class="btn primary" data-act="pushEnable">${t('pushEnable')}</button></div>`}
+  ${inKiosk() ? '' : `<p class="note">${t('remNow', { s: remSummary() })}</p>`}${remForm()}</div>`;
 
 // =====================================================================
 // KIOSK (store iPad)
@@ -1084,6 +1110,7 @@ document.addEventListener('click', async (e) => {
   if (act === 'retryJoin') { enterAdmin(); return; }
 
   if (act === 'pushEnable') { try { await pushEnable(); } catch (err) { fail(err); } return; }
+  if (act === 'pushDisable') { try { await pushDisable(); } catch (err) { fail(err); } return; }
   if (/^o[A-Z]/.test(act) && (app.mode === 'kiosk' || app.mode === 'admin')) { if (await orderAction(act, el, id)) return; }
   if (act === 'kView') { K.view = id; O.editId = null; O.isNew = false; O.draft = null; if (id === 'orders') { renderKiosk(); try { await ordersLoad(); } catch (err) { fail(err); } pushCheck().then((changed) => { if (changed) renderKiosk(); }); } renderKiosk(); if (id === 'clock') kioskLoad(); return; }
   // kiosk
@@ -1305,6 +1332,9 @@ document.addEventListener('change', async (e) => {
     's-stat': () => { st.stat.on = el.checked; }, 's-statx': () => { st.stat.x = +el.value; }, 's-statavg': () => { st.stat.avgDay = el.checked; },
     's-vac': () => { st.vac = { ...(st.vac || { pct: 4 }), on: el.checked }; }, 's-vacpct': () => { st.vac = { ...(st.vac || { on: false }), pct: +el.value }; },
     's-tips': () => { st.tipsOn = el.checked; }, 's-tipm': () => { st.tipMethod = el.value; },
+    'r-eve': () => { st.remind = { ...remCfg(), eveOn: el.checked }; }, 'r-eveh': () => { st.remind = { ...remCfg(), eveHour: +el.value }; },
+    'r-morn': () => { st.remind = { ...remCfg(), mornOn: el.checked }; }, 'r-mornh': () => { st.remind = { ...remCfg(), mornHour: +el.value }; },
+    'r-early': () => { st.remind = { ...remCfg(), earlyDays: +el.value }; },
   };
   if (!map[el.id]) return;
   map[el.id]();

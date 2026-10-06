@@ -19,7 +19,8 @@ for (const s of due.subs) {
   const mine = (list) => list.filter((o) => !s.loc || o.loc === s.loc);
   const msgs = [];
   if (due.test) msgs.push({ title: 'Cafe Ricotta 알림 테스트', body: '이 기기에서 케이크 예약 알림을 받을 수 있어요.' });
-  const tm = mine(due.tomorrow), td = mine(due.today);
+  const ea = mine(due.early || []), tm = mine(due.tomorrow), td = mine(due.today);
+  if (ea.length) msgs.push({ title: `${due.earlyDays}일 뒤 케이크 픽업 ${ea.length}건`, body: ea.map((o) => `${o.date.slice(5).replace('-', '/')} ${line(o)}`).join('\n') });
   if (tm.length) msgs.push({ title: `내일 케이크 픽업 ${tm.length}건`, body: tm.map(line).join('\n') });
   if (td.length) msgs.push({ title: `오늘 케이크 픽업 ${td.length}건`, body: td.map(line).join('\n') });
   for (const m of msgs) {
@@ -31,5 +32,5 @@ for (const s of due.subs) {
     }
   }
 }
-console.log(`orders tomorrow=${due.tomorrow.length} today=${due.today.length} · devices=${due.subs.length} · sent=${sent} removed=${gone} failed=${failed}`);
+console.log(`orders early=${(due.early || []).length} tomorrow=${due.tomorrow.length} today=${due.today.length} · devices=${due.subs.length} · sent=${sent} removed=${gone} failed=${failed}`);
 if (failed) process.exitCode = 1;

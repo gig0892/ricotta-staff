@@ -1,6 +1,6 @@
 // Keeps the app opening when the store Wi-Fi drops. App files: network first, cache as fallback.
 // Fonts: cache first. Database calls are never cached.
-const CACHE = 'ricotta-202610070519';
+const CACHE = 'ricotta-202610070529';
 const SHELL = ['./', 'index.html', 'app.js', 'payroll.js', 'config.js', 'vendor/supabase.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
