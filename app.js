@@ -54,7 +54,7 @@ const TXT = {
     devicesNow: '매장 기기', lastSeen: '마지막 연결 {t}', never: '아직 연결 안 됨', ago: '{n}분 전', agoH: '{n}시간 전', agoD: '{n}일 전', justNow: '방금',
     cardsTitle: '근무기록', allStaff: '전체 직원', onlyIssues: '확인 필요만', addRecord: '기록 추가', cardsHint: '기록을 누르면 시간을 고칠 수 있어요. 누가 언제 왜 고쳤는지 모두 남아요.',
     noCards: '근무기록이 없어요', noCardsD: '매장 아이패드에서 출퇴근하면 여기에 쌓여요.', loadMore: '이전 기록 더 보기',
-    missingOut: '퇴근 누락', missingIn: '출근 누락', edited: '수정됨', manualTag: '직접 입력', staff: '직원', loc: '지점', date: '날짜', inT: '출근', outT: '퇴근',
+    offlineTag: '오프라인 기록', offlineTip: '인터넷이 끊겼을 때 아이패드에 저장됐다가 올라온 기록이에요. 시간이 맞는지 확인하세요.', missingOut: '퇴근 누락', missingIn: '출근 누락', edited: '수정됨', manualTag: '직접 입력', staff: '직원', loc: '지점', date: '날짜', inT: '출근', outT: '퇴근',
     note: '메모', notePh: '예: 마감 청소로 30분 늦게 퇴근', reason: '수정 이유', reasonPh: '예: 퇴근 안 찍음', save: '저장', needTime: '날짜와 출근 또는 퇴근 시간을 넣어주세요.', saved: '저장했어요', deleted: '지웠어요', delQ: '이 기록을 지울까요? (이력은 남아요)',
     history: '변경 이력', kioskActor: '매장 아이패드', manual: '직접 수정', none: '없음', loading: '불러오는 중…',
     actCreate: '추가', actUpdate: '수정', actDelete: '삭제', actRestore: '복구', actKiosk: '출퇴근 찍음',
@@ -119,7 +119,7 @@ const TXT = {
     devicesNow: 'Store devices', lastSeen: 'last seen {t}', never: 'never connected', ago: '{n} min ago', agoH: '{n} h ago', agoD: '{n} d ago', justNow: 'just now',
     cardsTitle: 'Timesheet', allStaff: 'All staff', onlyIssues: 'Needs review only', addRecord: 'Add record', cardsHint: 'Tap a record to correct it. Who changed what, when and why is kept.',
     noCards: 'No time records', noCardsD: 'Records appear here when staff clock in on the store iPad.', loadMore: 'Load older records',
-    missingOut: 'No clock-out', missingIn: 'No clock-in', edited: 'Edited', manualTag: 'Manual', staff: 'Staff', loc: 'Location', date: 'Date', inT: 'In', outT: 'Out',
+    offlineTag: 'Saved offline', offlineTip: 'Saved on the iPad while the internet was down, uploaded later. Check the time.', missingOut: 'No clock-out', missingIn: 'No clock-in', edited: 'Edited', manualTag: 'Manual', staff: 'Staff', loc: 'Location', date: 'Date', inT: 'In', outT: 'Out',
     note: 'Note', notePh: 'e.g. stayed 30 min for closing', reason: 'Reason', reasonPh: 'e.g. forgot to clock out', save: 'Save', needTime: 'Enter a date and a clock-in or clock-out time.', saved: 'Saved', deleted: 'Deleted', delQ: 'Delete this record? (history is kept)',
     history: 'History', kioskActor: 'Store iPad', manual: 'Manual edit', none: 'none', loading: 'Loading…',
     actCreate: 'added', actUpdate: 'edited', actDelete: 'deleted', actRestore: 'restored', actKiosk: 'clocked',
@@ -360,7 +360,7 @@ async function onAuthSubmit(form) {
 // ADMIN
 // =====================================================================
 const isOwner = () => D?.role === 'owner';
-const normPunch = (r) => ({ id: r.id, staffId: r.staff_id, loc: r.loc, inMs: r.clock_in ? Date.parse(r.clock_in) : null, outMs: r.clock_out ? Date.parse(r.clock_out) : null, source: r.source, note: r.note || '', updated: r.updated_at, created: r.created_at });
+const normPunch = (r) => ({ id: r.id, staffId: r.staff_id, loc: r.loc, inMs: r.clock_in ? Date.parse(r.clock_in) : null, outMs: r.clock_out ? Date.parse(r.clock_out) : null, source: r.source, offline: !!r.offline, note: r.note || '', updated: r.updated_at, created: r.created_at });
 const staffById = (id) => D.staff.find((s) => s.id === id);
 const inLoc = (loc) => prefs.loc === 'all' || loc === prefs.loc || loc === 'both';
 const statName = (st) => (prefs.lang === 'ko' ? st.ko : st.en);
@@ -506,7 +506,7 @@ function viewCards() {
   const staffOpts = D.staff.filter((s) => inLoc(s.loc));
   const list = visiblePunches()
     .filter((p) => ui.cardStaff === 'all' || p.staffId === ui.cardStaff)
-    .filter((p) => !ui.onlyIssues || P.isMissing(p, now))
+    .filter((p) => !ui.onlyIssues || P.isMissing(p, now) || p.offline)
     .sort((a, b) => (b.inMs ?? b.outMs) - (a.inMs ?? a.outMs));
   const byDay = {};
   list.forEach((p) => (byDay[P.punchDay(p)] ||= []).push(p));
@@ -524,7 +524,7 @@ function viewCards() {
         const s = staffById(p.staffId), missOut = p.inMs && !p.outMs && P.isMissing(p, now), missIn = !p.inMs, live = p.inMs && !p.outMs && !missOut;
         const edited = p.source === 'manual' || (p.updated && p.created && Date.parse(p.updated) - Date.parse(p.created) > 1000 && p.source !== 'kiosk');
         return `<div class="row click" data-act="edit" data-id="${p.id}"><div><div class="who">${av(s?.name)}<span>${esc(s?.name)}</span></div>
-          <div class="sub"><span class="num">${p.inMs ? hmOf(p.inMs) : '?'} – ${p.outMs ? hmOf(p.outMs) : '?'}</span><span>${t(p.loc)}</span>${missOut ? `<span class="pill alert">${t('missingOut')}</span>` : ''}${missIn ? `<span class="pill alert">${t('missingIn')}</span>` : ''}${live ? `<span class="pill on">${t('working')}</span>` : ''}${p.source === 'manual' ? `<span class="pill">${t('manualTag')}</span>` : edited ? `<span class="pill">${t('edited')}</span>` : ''}</div>${p.note ? `<div class="sub" style="color:var(--ink)">${t('note')}: ${esc(p.note)}</div>` : ''}</div>
+          <div class="sub"><span class="num">${p.inMs ? hmOf(p.inMs) : '?'} – ${p.outMs ? hmOf(p.outMs) : '?'}</span><span>${t(p.loc)}</span>${missOut ? `<span class="pill alert">${t('missingOut')}</span>` : ''}${missIn ? `<span class="pill alert">${t('missingIn')}</span>` : ''}${live ? `<span class="pill on">${t('working')}</span>` : ''}${p.offline ? `<span class="pill alert" title="${t('offlineTip')}">${t('offlineTag')}</span>` : ''}${p.source === 'manual' ? `<span class="pill">${t('manualTag')}</span>` : edited ? `<span class="pill">${t('edited')}</span>` : ''}</div>${p.note ? `<div class="sub" style="color:var(--ink)">${t('note')}: ${esc(p.note)}</div>` : ''}</div>
           <div class="num">${p.inMs && p.outMs ? hrs(P.shiftHours(p, D.settings)) + 'h' : '—'}</div></div>${ui.editId === p.id ? editForm(p, false) : ''}`;
       }).join('')}`).join('')}</div>`
     : `<div class="card empty"><h3>${t('noCards')}</h3><p class="note">${t('noCardsD')}</p></div>`}
