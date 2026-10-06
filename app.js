@@ -48,6 +48,9 @@ const TXT = {
     // admin
     kioskBanner: '이 아이패드는 매장 출퇴근 기기예요. 관리 화면은 5분 동안 안 쓰면 자동으로 닫혀요.', toKiosk: '출퇴근 화면으로',
     guideTitle: '이렇게 시작해요', g1: '직원 등록', g1d: '이름, 시급, PIN(선택)을 넣어요.', g2: '매장 아이패드 등록', g2d: '아이패드에서 로그인 → 설정 → "이 기기를 출퇴근 기기로 등록".', g3: '출퇴근 시작', g3d: '직원은 아이패드에서 이름 누르고 출근/퇴근. 급여는 자동 계산돼요.',
+    noteBtn: '시간이 틀렸어요 · 메모 남기기', noteTitle: '정정 요청', notePh2: '예: 실제 출근은 9시였어요', noteSend: '보내기', noteSent: '사장님께 전달했어요.', noteLate: '시간이 지나서 보낼 수 없어요. 사장님께 직접 말해주세요.', noteOffline: '인터넷이 끊겨서 보내지 못했어요. 사장님께 직접 말해주세요.',
+    reqTitle: '정정 요청', reqView: '기록 보기', reqDone: '처리 완료', reqDoneOk: '처리 완료로 표시했어요.', reqTag: '정정 요청',
+    histTitle: '수정 기록', histD: '근무기록을 누가, 언제, 무엇을, 왜 고쳤는지 전부 보여요. 출퇴근 버튼으로 찍힌 기록은 빼고 보여줘요.', histLoad: '수정 기록 보기', histMore: '더 보기', histNone: '아직 수정한 기록이 없어요.',
     statSoon: '다가오는 공휴일', statInDays: '{n}일 후', statTodayTag: '오늘', statElig: '공휴일 수당 대상', statSoFar: '지금까지 {n}일 근무 · 15일 필요', statNo: '대상 아님 · {n}일 근무', statNew: '입사 30일 미만', statCheck: '앱 사용 전 기록 필요 — 직접 확인 ({n}일 기록됨)',
     statRule: 'BC 기준: 입사 30일 이상이고 공휴일 전 30일 중 15일 이상 일한 직원은 공휴일 평균 일당을 받아요. 공휴일에 일하면 그와 별도로 일한 시간은 1.5배예요. 앱이 근무기록으로 날짜를 세서 급여에 자동으로 넣어요.',
     missingAlert: '확인이 필요한 기록이 {n}건 있어요 (퇴근 누락 등).', fix: '고치러 가기',
@@ -113,6 +116,9 @@ const TXT = {
     online: 'Online', offline: 'Offline', queued: '{n} waiting to upload', admin: 'Admin', cancel: 'Cancel', del: 'Delete',
     kioskBanner: 'This iPad is the store clock. The admin view closes itself after 5 minutes idle.', toKiosk: 'Back to clock',
     guideTitle: 'Getting started', g1: 'Add staff', g1d: 'Name, wage and an optional PIN.', g2: 'Register the store iPad', g2d: 'On the iPad: sign in → Settings → "Use this device as the store clock".', g3: 'Start clocking', g3d: 'Staff tap their name to clock in/out. Pay is calculated for you.',
+    noteBtn: 'Time is wrong · leave a note', noteTitle: 'Correction request', notePh2: 'e.g. I actually started at 9', noteSend: 'Send', noteSent: 'Sent to the owner.', noteLate: 'Too late to send. Please tell the owner directly.', noteOffline: 'No internet — not sent. Please tell the owner directly.',
+    reqTitle: 'Correction requests', reqView: 'Open record', reqDone: 'Mark done', reqDoneOk: 'Marked as done.', reqTag: 'Correction',
+    histTitle: 'Edit history', histD: 'Who changed which time record, when and why. Plain clock-in/out taps are left out.', histLoad: 'Show edit history', histMore: 'Load more', histNone: 'No edits yet.',
     statSoon: 'Upcoming stat holidays', statInDays: 'in {n} days', statTodayTag: 'today', statElig: 'Gets stat pay', statSoFar: '{n} days so far · needs 15', statNo: 'Not eligible · {n} days', statNew: 'Employed under 30 days', statCheck: 'Needs records from before the app — check manually ({n} days recorded)',
     statRule: 'BC: staff employed 30+ days who worked 15 of the 30 days before the holiday get an average day’s pay. Hours worked on the holiday are paid 1.5× on top. The app counts the days from the timesheet and adds it to payroll.',
     missingAlert: '{n} record(s) need review (missing clock-out etc.).', fix: 'Fix now',
@@ -209,7 +215,7 @@ async function kioskLoad() {
   } else {
     K.online = true; K.data = data; store.set(K_CACHE, data);
   }
-  if (app.mode === 'kiosk') renderKiosk();
+  if (app.mode === 'kiosk' && !K.noting) renderKiosk();
 }
 
 async function kioskFlush() {
@@ -249,10 +255,12 @@ async function kioskSubmit(action) {
   }
   if (data.result === 'bad_pin') { K.shake = true; renderKiosk(); K.shake = false; toast(t('wrongPin')); return; }
   const inMs = data.in ? Date.parse(data.in) : null, outMs = data.out ? Date.parse(data.out) : null;
+  const client = id;
   if (data.result === 'already_in') K.done = { name: s.name, action: 'in', time: hmOf(inMs), note: t('already', { t: hmOf(inMs) }) };
   else if (data.result === 'out_without_in') K.done = { name: s.name, action: 'out', time: hmOf(outMs), note: t('outNoIn') };
   else if (data.result === 'out') K.done = { name: s.name, action: 'out', time: hmOf(outMs), note: t('doneHours', { h: hrs((outMs - inMs) / 3600e3) }) };
   else K.done = { name: s.name, action: 'in', time: hmOf(inMs), note: '' };
+  K.done.client = client;
   K.pick = null; renderKiosk(); doneTimer();
   kioskLoad();
 }
@@ -298,7 +306,8 @@ function renderKiosk() {
       : `<button class="btn primary k-action" data-act="kGo">${pick.open ? t('clockOut') : t('clockIn')}</button>
          <button class="btn ghost" data-act="kCancel">${t('cancel')}</button>`}
     </div></div>` : ''}
-    ${K.done ? `<div class="done" data-act="kDone"><div><div class="big">${esc(K.done.name)}<br>${K.done.action === 'in' ? t('doneIn') : t('doneOut')}</div><div class="t">${K.done.time}</div>${K.done.note ? `<p>${esc(K.done.note)}</p>` : ''}<p>${t('tapToClose')}</p></div></div>` : ''}`;
+    ${K.done && K.noting ? `<div class="done"><div class="k-note"><div class="big" style="font-size:30px">${esc(K.done.name)} · ${t('noteTitle')}</div><textarea id="kNoteText" maxlength="300" placeholder="${t('notePh2')}"></textarea><div class="inline-actions" style="justify-content:center"><button class="btn primary" data-act="kNoteSend" style="background:var(--on-strong);color:var(--strong)">${t('noteSend')}</button><button class="btn" data-act="kNoteCancel">${t('cancel')}</button></div></div></div>` : ''}
+    ${K.done && !K.noting ? `<div class="done" data-act="kDone"><div><div class="big">${esc(K.done.name)}<br>${K.done.action === 'in' ? t('doneIn') : t('doneOut')}</div><div class="t">${K.done.time}</div>${K.done.note ? `<p>${esc(K.done.note)}</p>` : ''}${K.done.client ? `<button class="btn" data-act="kNote" style="margin-top:22px">${t('noteBtn')}</button>` : ''}<p>${t('tapToClose')}</p></div></div>` : ''}`;
 }
 
 // =====================================================================
@@ -370,7 +379,7 @@ async function enterAdmin() {
   if (error) { fail(error); app.mode = 'login'; render(); return; }
   const { data: { user } } = await sb.auth.getUser();
   if (!role) { app.mode = 'noaccess'; app.email = user?.email || ''; render(); return; }
-  D = { role, me: user, staff: [], wages: [], punches: [], loadedFrom: null, devices: [], members: [], invites: [], tips: {}, settings: null };
+  D = { role, me: user, requests: [], staff: [], wages: [], punches: [], loadedFrom: null, devices: [], members: [], invites: [], tips: {}, settings: null };
   app.mode = 'admin';
   K.lastTouch = Date.now();
   await loadAll();
@@ -396,6 +405,9 @@ async function loadAll(minFrom) {
     ]);
     for (const r of [st, se, dv, mb]) if (r.error) throw r.error;
     D.staff = st.data; D.settings = se.data.data; D.devices = dv.data; D.members = mb.data;
+    const rq = await sb.from('requests').select('*').eq('resolved', false).order('created_at');
+    if (rq.error) throw rq.error;
+    D.requests = rq.data;
     if (isOwner()) {
       const [wg, iv, tp] = await Promise.all([
         sb.from('staff_wages').select('*').order('effective'),
@@ -470,19 +482,32 @@ function viewToday() {
       <div class="day-h"><span>${t('todayLog')} · ${fmtDay(td)}</span><span class="num">${todays.length}</span></div>
       ${todays.length ? todays.map((p) => { const s = staffById(p.staffId); return `<div class="row"><div><div class="who">${av(s?.name)}<span>${esc(s?.name)}</span></div><div class="sub"><span>${t(p.loc)}</span></div></div><div class="num">${p.inMs ? hmOf(p.inMs) : '?'} – ${p.outMs ? hmOf(p.outMs) : ''}</div></div>`; }).join('') : `<div class="row"><span class="muted">${t('noToday')}</span></div>`}
     </div>
+    ${D.requests.filter((r) => inLoc(staffById(r.staff_id)?.loc || 'all')).length ? `<div class="card"><div class="day-h"><span>${t('reqTitle')}</span><span class="num">${D.requests.length}</span></div>${D.requests.map((r) => { const s = staffById(r.staff_id); const p = D.punches.find((x) => x.id === r.punch_id); return `<div class="row"><div><div class="who">${av(s?.name)}<span>${esc(s?.name)}</span></div><div class="sub"><span>${fmtDay(P.local(Date.parse(r.created_at)).ymd)} ${hmOf(Date.parse(r.created_at))}</span>${p ? `<span class="num">${p.inMs ? hmOf(p.inMs) : '?'} – ${p.outMs ? hmOf(p.outMs) : '?'}</span>` : ''}</div><div style="margin-top:4px">“${esc(r.message)}”</div></div><div class="inline-actions">${r.punch_id ? `<button class="btn" data-act="reqOpen" data-id="${r.punch_id}">${t('reqView')}</button>` : ''}<button class="btn primary" data-act="reqDone" data-id="${r.id}">${t('reqDone')}</button></div></div>`; }).join('')}</div>` : ''}
     ${statCard()}
     ${devs.length ? `<div class="card"><div class="day-h"><span>${t('devicesNow')}</span></div>${devs.map((d) => `<div class="row"><div><b>${esc(d.name)}</b><div class="sub"><span>${t(d.loc)}</span></div></div><div class="note">${t('lastSeen', { t: ago(d.last_seen) })}</div></div>`).join('')}</div>` : ''}
     ${setupDone ? '' : guide()}`;
+}
+
+const logWho = (l) => (l.actor ? (D.members.find((m) => m.user_id === l.actor)?.email || '?') : t('kioskActor'));
+const logVal = (k, v) => v == null || v === '' ? t('none') : (k === 'clock_in' || k === 'clock_out') ? `${fmtDay(P.local(Date.parse(v)).ymd)} ${hmOf(Date.parse(v))}` : k === 'staff_id' ? (staffById(v)?.name || '?') : k === 'loc' ? t(v) : String(v);
+const LOG_ACT = { create: 'actCreate', update: 'actUpdate', delete: 'actDelete', restore: 'actRestore', kiosk: 'actKiosk' };
+const LOG_KEY = { clock_in: 'inT', clock_out: 'outT', staff_id: 'staff', note: 'note', loc: 'loc' };
+function logLine(l, withStaff) {
+  const changes = l.old ? Object.keys(l.new || {}).filter((k) => JSON.stringify(l.old[k]) !== JSON.stringify(l.new[k]) && k !== 'deleted' && k !== 'offline').map((k) => `${t(LOG_KEY[k] || 'loc')} ${esc(logVal(k, l.old[k]))} → ${esc(logVal(k, l.new[k]))}`).join(', ') : '';
+  const sid = (l.new || l.old || {}).staff_id;
+  const subj = withStaff && sid ? ` · <b style="color:var(--ink)">${esc(staffById(sid)?.name || '?')}</b>` : '';
+  const when = l.new?.clock_in || l.new?.clock_out;
+  const what = withStaff && when && !l.old ? ` ${fmtDay(P.local(Date.parse(when)).ymd)} ${hmOf(l.new.clock_in ? Date.parse(l.new.clock_in) : null)}–${hmOf(l.new.clock_out ? Date.parse(l.new.clock_out) : null)}` : '';
+  return `<span>${fmtDay(P.local(Date.parse(l.at)).ymd)} ${hmOf(Date.parse(l.at))} · ${esc(logWho(l))}${subj} · ${t(LOG_ACT[l.action] || 'actUpdate')}${what}${changes ? ' · ' + changes : ''}${l.reason ? ` · “${esc(l.reason)}”` : ''}</span>`;
 }
 
 function editForm(p, isNew) {
   const date = isNew ? today() : P.punchDay(p);
   const staffOpts = D.staff.filter((s) => s.active || s.id === p.staffId);
   const log = ui.logs[p.id];
-  const who = (l) => (l.actor ? (D.members.find((m) => m.user_id === l.actor)?.email || '?') : t('kioskActor'));
-  const fmtVal = (k, v) => v == null || v === '' ? t('none') : (k === 'clock_in' || k === 'clock_out') ? `${fmtDay(P.local(Date.parse(v)).ymd)} ${hmOf(Date.parse(v))}` : k === 'staff_id' ? (staffById(v)?.name || '?') : k === 'loc' ? t(v) : String(v);
-  const actName = { create: 'actCreate', update: 'actUpdate', delete: 'actDelete', restore: 'actRestore', kiosk: 'actKiosk' };
+  const reqs = isNew ? [] : D.requests.filter((r) => r.punch_id === p.id);
   return `<div class="editbox" data-punch="${isNew ? 'new' : p.id}">
+    ${reqs.map((r) => `<div class="banner"><span><span class="pill alert">${t('reqTag')}</span> “${esc(r.message)}”</span><button class="btn" data-act="reqDone" data-id="${r.id}">${t('reqDone')}</button></div>`).join('')}
     <div class="form">
       <label class="f">${t('staff')}<select id="e-staff">${staffOpts.map((s) => `<option value="${s.id}" ${p.staffId === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
       <label class="f">${t('loc')}<select id="e-loc">${P.LOCS.map((l) => `<option value="${l}" ${p.loc === l ? 'selected' : ''}>${t(l)}</option>`).join('')}</select></label>
@@ -494,10 +519,7 @@ function editForm(p, isNew) {
     <label class="f">${t('note')}<input id="e-note" maxlength="300" value="${esc(p.note || '')}" placeholder="${t('notePh')}"></label>
     ${ui.confirm === 'delPunch' ? `<div class="confirm">${t('delQ')}<button class="btn primary" data-act="delPunch">${t('del')}</button><button class="btn ghost" data-act="noConfirm">${t('cancel')}</button></div>`
       : `<div class="inline-actions"><button class="btn primary" data-act="saveEdit">${t('save')}</button><button class="btn ghost" data-act="cancelEdit">${t('cancel')}</button>${isNew ? '' : `<button class="btn ghost" data-act="askDelPunch">${t('del')}</button>`}</div>`}
-    ${isNew ? '' : `<div class="log"><b style="color:var(--ink)">${t('history')}</b>${!log ? t('loading') : log.map((l) => {
-      const changes = l.old ? Object.keys(l.new || {}).filter((k) => JSON.stringify(l.old[k]) !== JSON.stringify(l.new[k]) && k !== 'deleted').map((k) => `${k === 'clock_in' ? t('inT') : k === 'clock_out' ? t('outT') : k === 'staff_id' ? t('staff') : k === 'note' ? t('note') : t('loc')} ${esc(fmtVal(k, l.old[k]))} → ${esc(fmtVal(k, l.new[k]))}`).join(', ') : '';
-      return `<span>${fmtDay(P.local(Date.parse(l.at)).ymd)} ${hmOf(Date.parse(l.at))} · ${esc(who(l))} · ${t(actName[l.action] || 'actUpdate')}${changes ? ' · ' + changes : ''}${l.reason ? ` · “${esc(l.reason)}”` : ''}</span>`;
-    }).join('')}</div>`}
+    ${isNew ? '' : `<div class="log"><b style="color:var(--ink)">${t('history')}</b>${!log ? t('loading') : log.map((l) => logLine(l, false)).join('')}</div>`}
   </div>`;
 }
 
@@ -506,7 +528,7 @@ function viewCards() {
   const staffOpts = D.staff.filter((s) => inLoc(s.loc));
   const list = visiblePunches()
     .filter((p) => ui.cardStaff === 'all' || p.staffId === ui.cardStaff)
-    .filter((p) => !ui.onlyIssues || P.isMissing(p, now) || p.offline)
+    .filter((p) => !ui.onlyIssues || P.isMissing(p, now) || p.offline || D.requests.some((r) => r.punch_id === p.id))
     .sort((a, b) => (b.inMs ?? b.outMs) - (a.inMs ?? a.outMs));
   const byDay = {};
   list.forEach((p) => (byDay[P.punchDay(p)] ||= []).push(p));
@@ -524,7 +546,7 @@ function viewCards() {
         const s = staffById(p.staffId), missOut = p.inMs && !p.outMs && P.isMissing(p, now), missIn = !p.inMs, live = p.inMs && !p.outMs && !missOut;
         const edited = p.source === 'manual' || (p.updated && p.created && Date.parse(p.updated) - Date.parse(p.created) > 1000 && p.source !== 'kiosk');
         return `<div class="row click" data-act="edit" data-id="${p.id}"><div><div class="who">${av(s?.name)}<span>${esc(s?.name)}</span></div>
-          <div class="sub"><span class="num">${p.inMs ? hmOf(p.inMs) : '?'} – ${p.outMs ? hmOf(p.outMs) : '?'}</span><span>${t(p.loc)}</span>${missOut ? `<span class="pill alert">${t('missingOut')}</span>` : ''}${missIn ? `<span class="pill alert">${t('missingIn')}</span>` : ''}${live ? `<span class="pill on">${t('working')}</span>` : ''}${p.offline ? `<span class="pill alert" title="${t('offlineTip')}">${t('offlineTag')}</span>` : ''}${p.source === 'manual' ? `<span class="pill">${t('manualTag')}</span>` : edited ? `<span class="pill">${t('edited')}</span>` : ''}</div>${p.note ? `<div class="sub" style="color:var(--ink)">${t('note')}: ${esc(p.note)}</div>` : ''}</div>
+          <div class="sub"><span class="num">${p.inMs ? hmOf(p.inMs) : '?'} – ${p.outMs ? hmOf(p.outMs) : '?'}</span><span>${t(p.loc)}</span>${missOut ? `<span class="pill alert">${t('missingOut')}</span>` : ''}${missIn ? `<span class="pill alert">${t('missingIn')}</span>` : ''}${live ? `<span class="pill on">${t('working')}</span>` : ''}${p.offline ? `<span class="pill alert" title="${t('offlineTip')}">${t('offlineTag')}</span>` : ''}${D.requests.some((r) => r.punch_id === p.id) ? `<span class="pill alert">${t('reqTag')}</span>` : ''}${p.source === 'manual' ? `<span class="pill">${t('manualTag')}</span>` : edited ? `<span class="pill">${t('edited')}</span>` : ''}</div>${p.note ? `<div class="sub" style="color:var(--ink)">${t('note')}: ${esc(p.note)}</div>` : ''}</div>
           <div class="num">${p.inMs && p.outMs ? hrs(P.shiftHours(p, D.settings)) + 'h' : '—'}</div></div>${ui.editId === p.id ? editForm(p, false) : ''}`;
       }).join('')}`).join('')}</div>`
     : `<div class="card empty"><h3>${t('noCards')}</h3><p class="note">${t('noCardsD')}</p></div>`}
@@ -739,6 +761,9 @@ function viewSettings() {
       <div class="form"><label class="f">${t('vacPct')}${num('s-vacpct', st.vac?.pct ?? 4, 1)}</label></div><p class="note">${t('vacD')}</p></div>
     <div class="card pad set-group"><h3>${t('tipsH')}</h3><label class="check"><input type="checkbox" id="s-tips" ${st.tipsOn ? 'checked' : ''} ${dis}> ${t('tipsOn')}</label>
       <div class="form"><label class="f">${t('tipM')}<select id="s-tipm" ${dis}><option value="hours" ${st.tipMethod === 'hours' ? 'selected' : ''}>${t('byHours')}</option><option value="equal" ${st.tipMethod === 'equal' ? 'selected' : ''}>${t('equally')}</option></select></label></div></div>
+    <div class="card pad set-group"><h3>${t('histTitle')}</h3><p class="note">${t('histD')}</p>
+      ${ui.hist ? (ui.hist.length ? `<div class="log">${ui.hist.map((l) => logLine(l, true)).join('')}</div>` : `<p class="muted">${t('histNone')}</p>`) : ''}
+      <div>${!ui.hist ? `<button class="btn" data-act="histLoad">${t('histLoad')}</button>` : ui.histMore ? `<button class="btn" data-act="histLoad">${t('histMore')}</button>` : ''}</div></div>
     ${owner ? `<div class="card pad set-group"><h3>${t('backup')}</h3><p class="note">${t('backupD')}</p><p>${st.lastBackup ? t('backupLast', { d: fmtDay(st.lastBackup) }) : t('backupNever')}</p><div><button class="btn primary" data-act="backup">${t('backupBtn')}</button></div></div>` : ''}
     <div class="card pad set-group"><h3>${t('square')}</h3><p class="note">${t('squareD')}</p><div class="inline-actions"><button class="btn primary" disabled>${t('connect')}</button><span class="pill">${t('soon')}</span></div></div>
     <div class="card pad set-group"><h3>${t('account')}</h3><p><b>${esc(D.me.email)}</b> · ${t(D.role)}</p>
@@ -810,7 +835,19 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (act === 'kDone') { K.done = null; renderKiosk(); return; }
+  if (act === 'kNote') { clearTimeout(doneTimer.h); K.noting = true; renderKiosk(); $('#kNoteText')?.focus(); return; }
+  if (act === 'kNoteCancel') { K.noting = false; K.done = null; renderKiosk(); return; }
+  if (act === 'kNoteSend') {
+    const msg = $('#kNoteText').value.trim();
+    if (!msg) return;
+    el.disabled = true;
+    const { error } = await sb.rpc('kiosk_note', { p_token: deviceToken(), p_client: K.done.client, p_message: msg });
+    K.noting = false; K.done = null; renderKiosk();
+    toast(!error ? t('noteSent') : /too_late/.test(error.message) ? t('noteLate') : t('noteOffline'));
+    return;
+  }
   if (act === 'kAdmin') {
+    ui.tab = 'today'; history.replaceState(null, '', '#today');
     const { data: { session } } = await sb.auth.getSession();
     if (session) enterAdmin(); else { app.mode = 'login'; app.authView = 'in'; app.authMsg = ''; renderLogin(); }
     return;
@@ -821,6 +858,21 @@ document.addEventListener('click', async (e) => {
   else if (act === 'goTab') go(el.dataset.tab);
   else if (act === 'guideStaff') { ui.staffEdit = { id: null, name: '', role: '', loc: prefs.loc === 'all' ? 'langley' : prefs.loc, start_date: null, active: true, has_pin: false, isNew: true }; go('staff'); }
   else if (act === 'guideDevice') { ui.regOpen = true; go('settings'); }
+  else if (act === 'reqDone') {
+    const { error } = await sb.from('requests').update({ resolved: true, resolved_by: D.me.id, resolved_at: new Date().toISOString() }).eq('id', id);
+    if (error) return fail(error);
+    toast(t('reqDoneOk')); loadAll();
+  }
+  else if (act === 'reqOpen') {
+    ui.cardStaff = 'all'; ui.onlyIssues = false; ui.newPunch = null; ui.editId = id; go('cards');
+    if (!ui.logs[id]) { const { data } = await sb.from('punch_log').select('*').eq('punch_id', id).order('id'); ui.logs[id] = data || []; render(); }
+  }
+  else if (act === 'histLoad') {
+    const from = ui.hist ? ui.hist.length : 0;
+    const { data, error } = await sb.from('punch_log').select('*').neq('action', 'kiosk').order('id', { ascending: false }).range(from, from + 49);
+    if (error) return fail(error);
+    ui.hist = (ui.hist || []).concat(data); ui.histMore = data.length === 50; render();
+  }
   else if (act === 'goIssues') { ui.onlyIssues = true; ui.cardStaff = 'all'; go('cards'); }
   else if (act === 'noConfirm') { ui.confirm = null; render(); }
   // timesheet
