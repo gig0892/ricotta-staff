@@ -31,6 +31,7 @@ const TXT = {
     email: '이메일', password: '비밀번호', signIn: '로그인', signUp: '계정 만들기', haveAccount: '이미 계정이 있어요', needAccount: '계정이 없어요',
     forgot: '비밀번호를 잊었어요', sendReset: '재설정 메일 보내기', resetSent: '비밀번호 재설정 메일을 보냈어요. 메일의 링크를 눌러주세요.',
     newPw: '새 비밀번호', setPw: '비밀번호 바꾸기', pwChanged: '비밀번호를 바꿨어요.', pwShort: '비밀번호는 8자 이상이어야 해요.',
+    staffHint: '직원은 여기서 로그인하지 않아요. 출퇴근은 매장 아이패드에서 이름과 PIN으로 하세요. 이 화면은 사장·매니저용이에요.',
     firstRun: '처음 설정이에요. 사장님 이메일로 계정을 만들면 그 계정이 사장님(관리자) 계정이 돼요.',
     checkMail: '확인 메일을 보냈어요. 메일의 링크를 누른 다음 여기서 로그인하세요.',
     authFail: '이메일이나 비밀번호가 맞지 않아요. 처음이라면 아래 [계정이 없어요]를 눌러 계정부터 만드세요.', backToClock: '← 출퇴근 화면으로',
@@ -97,6 +98,7 @@ const TXT = {
     email: 'Email', password: 'Password', signIn: 'Sign in', signUp: 'Create account', haveAccount: 'I already have an account', needAccount: 'I need an account',
     forgot: 'Forgot password', sendReset: 'Send reset email', resetSent: 'Reset email sent. Open the link in it.',
     newPw: 'New password', setPw: 'Change password', pwChanged: 'Password changed.', pwShort: 'Use at least 8 characters.',
+    staffHint: 'Staff don’t sign in here. Clock in and out on the store iPad with your name and PIN. This screen is for the owner and managers.',
     firstRun: 'First-time setup. The first account created becomes the owner (admin) account.',
     checkMail: 'We sent a confirmation email. Open its link, then sign in here.',
     authFail: 'Email or password is not right. First time here? Tap [I need an account] below to create one.', backToClock: '← Back to clock',
@@ -320,7 +322,7 @@ function renderLogin() {
           : `<button type="button" class="link" data-act="authView" data-id="in">${t('haveAccount')}</button>`}
       </div>
     </form>`}
-    ${deviceToken() ? `<button class="btn" data-act="toKiosk">${t('backToClock')}</button>` : ''}
+    ${deviceToken() ? `<button class="btn" data-act="toKiosk">${t('backToClock')}</button>` : `<p class="note" style="text-align:center">${t('staffHint')}</p>`}
   </div>`;
 }
 
