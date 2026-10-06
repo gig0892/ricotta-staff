@@ -33,7 +33,7 @@ const TXT = {
     newPw: '새 비밀번호', setPw: '비밀번호 바꾸기', pwChanged: '비밀번호를 바꿨어요.', pwShort: '비밀번호는 8자 이상이어야 해요.',
     firstRun: '처음 설정이에요. 사장님 이메일로 계정을 만들면 그 계정이 사장님(관리자) 계정이 돼요.',
     checkMail: '확인 메일을 보냈어요. 메일의 링크를 누른 다음 여기서 로그인하세요.',
-    authFail: '이메일이나 비밀번호가 맞지 않아요.', backToClock: '← 출퇴근 화면으로',
+    authFail: '이메일이나 비밀번호가 맞지 않아요. 처음이라면 아래 [계정이 없어요]를 눌러 계정부터 만드세요.', backToClock: '← 출퇴근 화면으로',
     noAccess: '아직 팀에 등록되지 않은 계정이에요', noAccessD: '사장님이 설정 → 팀에서 {e} 를 초대하면 바로 들어올 수 있어요.', retry: '다시 확인', signOut: '로그아웃',
     deviceRevoked: '이 기기의 출퇴근 등록이 해제됐어요. 관리자 로그인 후 다시 등록하세요.',
     // kiosk
@@ -96,7 +96,7 @@ const TXT = {
     newPw: 'New password', setPw: 'Change password', pwChanged: 'Password changed.', pwShort: 'Use at least 8 characters.',
     firstRun: 'First-time setup. The first account created becomes the owner (admin) account.',
     checkMail: 'We sent a confirmation email. Open its link, then sign in here.',
-    authFail: 'Email or password is not right.', backToClock: '← Back to clock',
+    authFail: 'Email or password is not right. First time here? Tap [I need an account] below to create one.', backToClock: '← Back to clock',
     noAccess: 'This account is not on the team yet', noAccessD: 'Ask the owner to invite {e} in Settings → Team, then try again.', retry: 'Check again', signOut: 'Sign out',
     deviceRevoked: 'This device was removed as a clock-in device. Sign in as admin to register it again.',
     tapName: 'Tap your name', clockIn: 'Clock in', clockOut: 'Clock out', working: 'Working', since: 'Working since {t}', off: 'Off',
