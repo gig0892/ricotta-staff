@@ -409,8 +409,8 @@ async function loadAll(minFrom) {
 function guide() {
   const hasStaff = D.staff.length > 0, hasDev = D.devices.some((d) => !d.revoked);
   return `<div class="cap">${t('guideTitle')}</div><div class="steps">
-    <div class="card step ${hasStaff ? 'done' : ''}"><span class="n">1</span><b>${t('g1')}</b><span class="note">${t('g1d')}</span></div>
-    <div class="card step ${hasDev ? 'done' : ''}"><span class="n">2</span><b>${t('g2')}</b><span class="note">${t('g2d')}</span></div>
+    <div class="card step click ${hasStaff ? 'done' : ''}" data-act="guideStaff" role="button" tabindex="0"><span class="n">1</span><b>${t('g1')}</b><span class="note">${t('g1d')}</span></div>
+    <div class="card step click ${hasDev ? 'done' : ''}" data-act="guideDevice" role="button" tabindex="0"><span class="n">2</span><b>${t('g2')}</b><span class="note">${t('g2d')}</span></div>
     <div class="card step"><span class="n">3</span><b>${t('g3')}</b><span class="note">${t('g3d')}</span></div></div>`;
 }
 
@@ -739,6 +739,8 @@ document.addEventListener('click', async (e) => {
   if (app.mode !== 'admin' || !D) return;
   if (act === 'loc') { prefs.loc = id; savePrefs(); ui.cardStaff = 'all'; render(); }
   else if (act === 'goTab') go(el.dataset.tab);
+  else if (act === 'guideStaff') { ui.staffEdit = { id: null, name: '', role: '', loc: prefs.loc === 'all' ? 'langley' : prefs.loc, start_date: null, active: true, has_pin: false, isNew: true }; go('staff'); }
+  else if (act === 'guideDevice') { ui.regOpen = true; go('settings'); }
   else if (act === 'goIssues') { ui.onlyIssues = true; ui.cardStaff = 'all'; go('cards'); }
   else if (act === 'noConfirm') { ui.confirm = null; render(); }
   // timesheet

@@ -100,6 +100,8 @@ section.view { display: grid; gap: 16px; padding-top: 20px; }
 .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 720px) { .steps { grid-template-columns: 1fr; } }
 .step { padding: 16px; display: grid; gap: 6px; }
+.step.click { cursor: pointer; }
+.step.click:hover { background: var(--soft); }
 .step .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; background: var(--strong); color: var(--on-strong); }
 .step.done .n { background: none; color: var(--ink); border: 1px solid var(--ink); }
 
