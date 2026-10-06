@@ -64,7 +64,10 @@ const TXT = {
     noPay: '이 기간에 근무 기록이 없어요.', tapDetail: '직원을 누르면 날짜별 내역이 보여요.',
     tipsTitle: '이 기간 팁 총액', tipsHint: 'Square를 연결하면 자동으로 들어와요. 지금은 지점별 총액을 넣으면 {m} 나눠요.', byHours: '근무시간 비율로', equally: '똑같이',
     copy: '엑셀용 표 복사', copied: '복사했어요. 엑셀에 붙여넣으면 표로 들어가요.', selected: '아래 표를 선택했어요. 복사해서 엑셀에 붙여넣으세요.',
-    csvSum: '요약 CSV 받기', csvDetail: '상세 CSV 받기 (회계사용)',
+    csvSum: '요약 CSV 받기', csvDetail: '상세 CSV 받기 (회계사용)', xlsx: '엑셀 파일 받기', xlsxHint: '엑셀에서 시간이나 시급을 고치면 합계가 자동으로 다시 계산돼요.', xlsxBusy: '엑셀 파일 만드는 중…', xlsxDone: '엑셀 파일을 받았어요.',
+    shSum: '급여 요약', shDetail: '근무 상세', period2: '급여 기간', rules2: '배율', dowCol: '요일', total: '합계', wageMixed: '기간 중 시급 변경 — 금액 고정',
+    backup: '백업', backupD: '직원, 시급 이력, 모든 근무기록, 변경 이력, 팁, 설정을 엑셀 파일 하나로 받아요. 2주에 한 번 받아두면 안전해요.', backupBtn: '전체 백업 받기', backupLast: '마지막 백업: {d}', backupNever: '아직 백업한 적 없음', backupDone: '백업 파일을 받았어요.', backupDue: '백업한 지 2주가 넘었어요. 버튼 한 번이면 돼요.', backupGo: '백업 받기',
+    shStaff: '직원', shWages: '시급 이력', shPunches: '근무기록', shLog: '변경 이력', shTips: '팁', shSettings: '설정', colDeleted: '삭제됨', colSource: '입력', colAt: '시각', colWho: '누가', colAction: '내용', colBefore: '이전', colAfter: '이후', colActive: '재직', colStart: '입사일', colId: 'ID', yes: '예', no: '아니요',
     ruleNote: 'BC주 기준: 하루 {d1}시간 넘으면 {x1}배, {d2}시간 넘으면 {x2}배, 주(일–토) {w}시간 넘으면 {wx}배, 공휴일 근무 {sx}배. 세금·CPP·EI 공제 전 금액이에요. 규칙은 설정에서 바꿀 수 있어요.',
     staffTitle: '직원', staffCount: '{n}명', addStaff: '직원 등록', name: '이름', role: '역할', rolePh: '예: 바리스타', wageL: '시급 ($)', startDate: '입사일 (선택)',
     pin: '출퇴근 PIN', pinSet: '설정됨', pinNone: '없음', pinNew: '새 PIN 4자리', pinClear: 'PIN 없애기', pinHint: 'PIN이 있으면 다른 사람이 대신 찍을 수 없어요. 없으면 이름만 눌러서 찍어요.', pinBad: 'PIN은 숫자 4자리예요.',
@@ -125,7 +128,10 @@ const TXT = {
     noPay: 'No hours in this period.', tapDetail: 'Tap a person to see each day.',
     tipsTitle: 'Tips this period', tipsHint: 'These come in automatically once Square is connected. For now, enter each location’s total and it is split {m}.', byHours: 'by hours worked', equally: 'equally',
     copy: 'Copy for Excel', copied: 'Copied. Paste into Excel to get a table.', selected: 'The table below is selected. Copy it and paste into Excel.',
-    csvSum: 'Download summary CSV', csvDetail: 'Download detail CSV (for accountant)',
+    csvSum: 'Download summary CSV', csvDetail: 'Download detail CSV (for accountant)', xlsx: 'Download Excel file', xlsxHint: 'Change hours or wages in Excel and the totals recalculate.', xlsxBusy: 'Building the Excel file…', xlsxDone: 'Excel file downloaded.',
+    shSum: 'Payroll summary', shDetail: 'Shifts', period2: 'Pay period', rules2: 'Rates', dowCol: 'Day', total: 'Total', wageMixed: 'Wage changed in period — amount fixed',
+    backup: 'Backup', backupD: 'Staff, wage history, every time record, change history, tips and settings in one Excel file. Download one every two weeks to be safe.', backupBtn: 'Download full backup', backupLast: 'Last backup: {d}', backupNever: 'No backup yet', backupDone: 'Backup downloaded.', backupDue: 'Over two weeks since the last backup. One tap.', backupGo: 'Back up now',
+    shStaff: 'Staff', shWages: 'Wage history', shPunches: 'Time records', shLog: 'Change history', shTips: 'Tips', shSettings: 'Settings', colDeleted: 'Deleted', colSource: 'Entry', colAt: 'When', colWho: 'Who', colAction: 'Action', colBefore: 'Before', colAfter: 'After', colActive: 'Employed', colStart: 'Start date', colId: 'ID', yes: 'Yes', no: 'No',
     ruleNote: 'BC rules: over {d1} h a day at {x1}×, over {d2} h at {x2}×, over {w} h a week (Sun–Sat) at {wx}×, stat holiday work at {sx}×. Amounts are before tax, CPP and EI. Change rules in Settings.',
     staffTitle: 'Staff', staffCount: '{n}', addStaff: 'Add staff', name: 'Name', role: 'Role', rolePh: 'e.g. Barista', wageL: 'Hourly wage ($)', startDate: 'Start date (optional)',
     pin: 'Clock-in PIN', pinSet: 'set', pinNone: 'none', pinNew: 'New 4-digit PIN', pinClear: 'Remove PIN', pinHint: 'With a PIN nobody can clock in for someone else. Without one, tapping the name is enough.', pinBad: 'A PIN is 4 digits.',
@@ -454,6 +460,7 @@ function viewToday() {
   const devs = D.devices.filter((d) => !d.revoked && inLoc(d.loc));
   const setupDone = D.staff.length && D.devices.some((d) => !d.revoked) && D.punches.length;
   return `
+    ${isOwner() && D.punches.length && (!D.settings.lastBackup || P.daysBetween(D.settings.lastBackup, td) > 14) ? `<div class="banner"><span>${t('backupDue')}</span><button class="btn" data-act="backup">${t('backupGo')}</button></div>` : ''}
     ${miss ? `<div class="banner"><span><span class="pill alert">!</span> ${t('missingAlert', { n: miss })}</span><button class="btn" data-act="goIssues">${t('fix')}</button></div>` : ''}
     <div class="card">
       <div class="day-h"><span>${t('onNow')}</span><span class="num">${open.length}</span></div>
@@ -553,8 +560,8 @@ function viewPay() {
         ${ui.open[r.staff.id] ? `<div class="days">${r.days.map((c) => `<div><span>${fmtDay(c.date)}</span><span class="num muted">${c.punches.map((p) => hmOf(p.inMs) + '–' + hmOf(p.outMs)).join(', ')}${P.statOn(c.date) && st.stat.on ? ' · ' + esc(statName(P.statOn(c.date))) : ''}</span><span class="num">${hrs(c.hours)}h</span></div>`).join('')}
           ${r.statAvg.filter((x) => x.status === 'yes').map((x) => `<div><span>${fmtDay(x.date)}</span><span class="muted">${t('statAvg')}</span><span class="num">${money(x.amount)}</span></div>`).join('')}</div>` : ''}
       </div>`).join('')}</div>
-      <div class="inline-actions"><button class="btn primary" data-act="csv">${t('copy')}</button><button class="btn" data-act="dlSum">${t('csvSum')}</button><button class="btn" data-act="dlDetail">${t('csvDetail')}</button></div>
-      <p class="note">${t('tapDetail')}</p>
+      <div class="inline-actions"><button class="btn primary" data-act="xlsx">${t('xlsx')}</button><button class="btn" data-act="csv">${t('copy')}</button><button class="btn" data-act="dlSum">${t('csvSum')}</button><button class="btn" data-act="dlDetail">${t('csvDetail')}</button></div>
+      <p class="note">${t('xlsxHint')} ${t('tapDetail')}</p>
       ${ui.csv ? `<textarea class="out" id="csvOut" readonly aria-label="CSV">${esc(ui.csv)}</textarea>` : ''}`
     : `<div class="card empty"><p class="muted">${t('noPay')}</p></div>`}
     <p class="note">${t('ruleNote', { d1: o.d1, x1: o.d1x, d2: o.d2, x2: o.d2x, w: o.w, wx: o.wx, sx: st.stat.x })}</p>`;
@@ -573,6 +580,74 @@ function detailTable() {
   for (const r of rows) for (const c of r.days) for (const p of c.punches) body.push([r.staff.name, c.date, t(p.loc), hmOf(p.inMs), hmOf(p.outMs), hrs(P.shiftHours(p, D.settings)), P.wageOn(D.wages, r.staff.id, c.date).toFixed(2), p.note || '']);
   return { range, lines: [head, ...body] };
 }
+// ---------- Excel ----------
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'vendor/xlsx.full.min.js'; s.onload = () => ok(window.XLSX); s.onerror = no; document.head.appendChild(s); });
+}
+const colLetter = (i) => String.fromCharCode(65 + i);
+function sheetFrom(X, rows, widths) {
+  const ws = X.utils.aoa_to_sheet(rows);
+  if (widths) ws['!cols'] = widths.map((wch) => ({ wch }));
+  return ws;
+}
+async function payrollXlsx() {
+  toast(t('xlsxBusy'));
+  const X = await loadXLSX();
+  const { range, rows } = currentPayroll(), st = D.settings, o = st.ot;
+  const vac = st.vac?.on ? st.vac.pct / 100 : 0;
+  const head = [t('staff'), t('loc'), t('reg'), t('ot15'), t('ot2'), t('stat'), t('stat2'), t('wage'), t('gross'), t('statAvg'), t('vac'), t('tips'), t('total')];
+  const top = [[`Cafe Ricotta — ${t('shSum')}`], [t('period2'), `${range.start} ~ ${range.end}`], [t('rules2'), `${t('ot15')} ×${o.d1x} · ${t('ot2')} ×${o.d2x} · ${t('stat')} ×${st.stat.x}${vac ? ` · ${t('vac')} ${st.vac.pct}%` : ''}`], [], head];
+  const first = top.length + 1;
+  const body = rows.map((r, i) => {
+    const n = first + i;
+    const mixed = r.wagesUsed.length > 1;
+    const gross = mixed ? +r.gross.toFixed(2) : { f: `ROUND(H${n}*(C${n}+D${n}*${o.d1x}+E${n}*${o.d2x}+F${n}*${st.stat.x}+G${n}*${o.d2x}),2)` };
+    return [r.staff.name, t(r.staff.loc), +hrs(r.reg), +hrs(r.x15), +hrs(r.x2), +hrs(r.stat), +hrs(r.stat2), r.wage, gross, +r.statAvgTotal.toFixed(2),
+      { f: `ROUND((I${n}+J${n})*${vac},2)` }, +r.tips.toFixed(2), { f: `I${n}+J${n}+K${n}+L${n}` }, mixed ? t('wageMixed') : ''];
+  });
+  const last = first + rows.length - 1;
+  const sumRow = [t('total'), '', ...['C', 'D', 'E', 'F', 'G'].map((c) => ({ f: `SUM(${c}${first}:${c}${last})` })), '', ...['I', 'J', 'K', 'L', 'M'].map((c) => ({ f: `SUM(${c}${first}:${c}${last})` }))];
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, sheetFrom(X, [...top, ...body, sumRow], [14, 9, 8, 9, 9, 10, 10, 8, 11, 11, 10, 9, 12, 26]), t('shSum'));
+  const det = [[t('staff'), t('date'), t('dowCol'), t('loc'), t('inT'), t('outT'), t('totalHours'), t('wage'), t('note')]];
+  for (const r of rows) for (const c of r.days) for (const p of c.punches) det.push([r.staff.name, c.date, t('dow')[P.dow(c.date)], t(p.loc), hmOf(p.inMs), hmOf(p.outMs), +hrs(P.shiftHours(p, st)), P.wageOn(D.wages, r.staff.id, c.date), p.note || '']);
+  X.utils.book_append_sheet(wb, sheetFrom(X, det, [14, 11, 5, 9, 7, 7, 9, 8, 30]), t('shDetail'));
+  X.writeFile(wb, `ricotta-payroll-${range.start}_${range.end}.xlsx`);
+  toast(t('xlsxDone'));
+}
+async function fetchAll(table, order) {
+  const out = [];
+  for (let page = 0; ; page++) {
+    const { data, error } = await sb.from(table).select('*').order(order).range(page * 1000, page * 1000 + 999);
+    if (error) throw error;
+    out.push(...data);
+    if (data.length < 1000) return out;
+  }
+}
+async function backupXlsx() {
+  toast(t('xlsxBusy'));
+  const X = await loadXLSX();
+  const [staff, wages, punches, log, tips] = await Promise.all([fetchAll('staff', 'created_at'), fetchAll('staff_wages', 'effective'), fetchAll('punches', 'ts'), fetchAll('punch_log', 'id'), fetchAll('tips', 'period_start')]);
+  const name = Object.fromEntries(staff.map((s) => [s.id, s.name]));
+  const when = (v) => (v ? `${P.local(Date.parse(v)).ymd} ${hmOf(Date.parse(v))}` : '');
+  const who = (l) => (l.actor ? (D.members.find((m) => m.user_id === l.actor)?.email || l.actor) : t('kioskActor'));
+  const yn = (b) => (b ? t('yes') : t('no'));
+  const wb = X.utils.book_new();
+  const add = (rows, title, widths) => X.utils.book_append_sheet(wb, sheetFrom(X, rows, widths), title);
+  add([[t('name'), t('role'), t('loc'), t('colActive'), t('colStart'), 'PIN', t('colId')], ...staff.map((s) => [s.name, s.role, t(s.loc), yn(s.active), s.start_date || '', s.has_pin ? t('pinSet') : t('pinNone'), s.id])], t('shStaff'), [14, 12, 9, 6, 11, 8, 38]);
+  add([[t('staff'), t('wageFrom'), t('wage')], ...wages.map((w) => [name[w.staff_id] || w.staff_id, w.effective, +w.wage])], t('shWages'), [14, 12, 8]);
+  add([[t('staff'), t('date'), t('loc'), t('inT'), t('outT'), t('note'), t('colSource'), t('colDeleted'), t('colId')], ...punches.map((p) => [name[p.staff_id] || p.staff_id, P.local(Date.parse(p.ts)).ymd, t(p.loc), p.clock_in ? hmOf(Date.parse(p.clock_in)) : '', p.clock_out ? hmOf(Date.parse(p.clock_out)) : '', p.note || '', p.source === 'kiosk' ? t('kioskActor') : t('manualTag'), yn(p.deleted), p.id])], t('shPunches'), [14, 11, 9, 7, 7, 26, 12, 7, 38]);
+  add([[t('colAt'), t('colWho'), t('colAction'), t('colBefore'), t('colAfter'), t('reason'), t('colId')], ...log.map((l) => [when(l.at), who(l), l.action, l.old ? JSON.stringify(l.old) : '', l.new ? JSON.stringify(l.new) : '', l.reason || '', l.punch_id])], t('shLog'), [17, 22, 9, 50, 50, 20, 38]);
+  add([[t('period2'), t('loc'), t('tips')], ...tips.map((x) => [x.period_start, t(x.loc), +x.amount])], t('shTips'), [12, 9, 9]);
+  add([[t('shSettings')], [JSON.stringify(D.settings)]], t('shSettings'), [120]);
+  X.writeFile(wb, `ricotta-backup-${today()}.xlsx`);
+  const st = { ...D.settings, lastBackup: today() };
+  const { error } = await sb.from('settings').update({ data: st, updated_at: new Date().toISOString() }).eq('id', 1);
+  if (!error) D.settings = st;
+  render(); toast(t('backupDone'));
+}
+
 function download(name, lines) {
   const csv = '﻿' + lines.map((l) => l.map((v) => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(',')).join('\r\n');
   const a = document.createElement('a');
@@ -662,6 +737,7 @@ function viewSettings() {
       <div class="form"><label class="f">${t('vacPct')}${num('s-vacpct', st.vac?.pct ?? 4, 1)}</label></div><p class="note">${t('vacD')}</p></div>
     <div class="card pad set-group"><h3>${t('tipsH')}</h3><label class="check"><input type="checkbox" id="s-tips" ${st.tipsOn ? 'checked' : ''} ${dis}> ${t('tipsOn')}</label>
       <div class="form"><label class="f">${t('tipM')}<select id="s-tipm" ${dis}><option value="hours" ${st.tipMethod === 'hours' ? 'selected' : ''}>${t('byHours')}</option><option value="equal" ${st.tipMethod === 'equal' ? 'selected' : ''}>${t('equally')}</option></select></label></div></div>
+    ${owner ? `<div class="card pad set-group"><h3>${t('backup')}</h3><p class="note">${t('backupD')}</p><p>${st.lastBackup ? t('backupLast', { d: fmtDay(st.lastBackup) }) : t('backupNever')}</p><div><button class="btn primary" data-act="backup">${t('backupBtn')}</button></div></div>` : ''}
     <div class="card pad set-group"><h3>${t('square')}</h3><p class="note">${t('squareD')}</p><div class="inline-actions"><button class="btn primary" disabled>${t('connect')}</button><span class="pill">${t('soon')}</span></div></div>
     <div class="card pad set-group"><h3>${t('account')}</h3><p><b>${esc(D.me.email)}</b> · ${t(D.role)}</p>
       <div class="form"><label class="f">${t('newPw')}<input id="acc-pw" type="password" autocomplete="new-password" minlength="8"></label></div>
@@ -795,6 +871,8 @@ document.addEventListener('click', async (e) => {
     const fallback = () => { render(); const ta = $('#csvOut'); if (ta) { ta.focus(); ta.select(); } toast(t('selected')); };
     try { await navigator.clipboard.writeText(ui.csv); render(); toast(t('copied')); } catch { fallback(); }
   }
+  else if (act === 'xlsx') { try { await payrollXlsx(); } catch (err) { fail(err); } }
+  else if (act === 'backup') { try { await backupXlsx(); } catch (err) { fail(err); } }
   else if (act === 'dlSum') { const { range, lines } = summaryTable(); download(`ricotta-payroll-${range.start}_${range.end}.csv`, lines); }
   else if (act === 'dlDetail') { const { range, lines } = detailTable(); download(`ricotta-shifts-${range.start}_${range.end}.csv`, lines); }
   // staff
