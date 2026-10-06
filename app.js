@@ -679,6 +679,7 @@ function renderAdmin() {
       <div class="brand"><b>Cafe Ricotta</b><span>${t('sub')}</span></div>
       <div class="seg" role="group" aria-label="${t('loc')}">${['all', ...P.LOCS].map((l) => `<button data-act="loc" data-id="${l}" aria-pressed="${prefs.loc === l}">${t(l)}</button>`).join('')}</div>
       ${langSeg()}
+      <button class="btn" data-act="signOut">${t('signOut')}</button>
     </div>
     <nav class="tabs" role="tablist">${tabs.map(([id, k]) => `<button role="tab" data-act="goTab" data-tab="${id}" aria-selected="${ui.tab === id}">${I[id]}<span>${t(k)}</span></button>`).join('')}</nav></header>
     <main class="wrap"><section class="view">
