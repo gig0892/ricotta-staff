@@ -58,7 +58,7 @@ const TXT = {
     history: '변경 이력', kioskActor: '매장 아이패드', manual: '직접 수정', none: '없음', loading: '불러오는 중…',
     actCreate: '추가', actUpdate: '수정', actDelete: '삭제', actRestore: '복구', actKiosk: '출퇴근 찍음',
     payTitle: '급여', prev: '이전 기간', next: '다음 기간', thisPeriod: '이번 기간',
-    totalHours: '총 근무시간', totalPay: '지급 합계 (세전)', toCheck: '확인 필요', checkNone: '빠진 기록 없음', checkSome: '확인 필요 {n}건 — 계산에서 빠져 있어요',
+    totalHours: '총 근무시간', totalPay: '지급 합계 (세전)', toCheck: '확인 필요', checkNone: '빠진 기록 없음', checkSome: '확인 필요 {n}건 — 아래 표시를 확인하세요',
     reg: '일반', ot15: '초과 1.5배', ot2: '초과 2배', stat: '공휴일 근무', stat2: '공휴일 12h 초과', tips: '팁', wage: '시급', gross: '급여', vac: '휴가수당', statAvg: '공휴일 수당',
     statYes: '{d} 공휴일 수당 {a}', statUnknown: '{d} 공휴일 수당: 앱 사용 전 기록이 필요해요 — 직접 확인', noWage: '시급 없음', wageChanged: '기간 중 시급 변경',
     noPay: '이 기간에 근무 기록이 없어요.', tapDetail: '직원을 누르면 날짜별 내역이 보여요.',
@@ -119,7 +119,7 @@ const TXT = {
     history: 'History', kioskActor: 'Store iPad', manual: 'Manual edit', none: 'none', loading: 'Loading…',
     actCreate: 'added', actUpdate: 'edited', actDelete: 'deleted', actRestore: 'restored', actKiosk: 'clocked',
     payTitle: 'Payroll', prev: 'Previous period', next: 'Next period', thisPeriod: 'Current period',
-    totalHours: 'Total hours', totalPay: 'Total to pay (gross)', toCheck: 'Needs review', checkNone: 'Nothing missing', checkSome: '{n} record(s) need review — not counted yet',
+    totalHours: 'Total hours', totalPay: 'Total to pay (gross)', toCheck: 'Needs review', checkNone: 'Nothing missing', checkSome: '{n} item(s) need review — see the marks below',
     reg: 'Regular', ot15: 'OT 1.5×', ot2: 'OT 2×', stat: 'Stat worked', stat2: 'Stat over 12h', tips: 'Tips', wage: 'Wage', gross: 'Pay', vac: 'Vacation pay', statAvg: 'Stat pay',
     statYes: '{d} stat pay {a}', statUnknown: '{d} stat pay: needs records from before the app — check manually', noWage: 'No wage', wageChanged: 'Wage changed in period',
     noPay: 'No hours in this period.', tapDetail: 'Tap a person to see each day.',
@@ -251,6 +251,7 @@ async function kioskSubmit(action) {
 function doneTimer() { clearTimeout(doneTimer.h); doneTimer.h = setTimeout(() => { K.done = null; renderKiosk(); }, 3500); }
 
 function renderKiosk() {
+  if (app.mode !== 'kiosk') return; // timers from the clock screen must never draw over login/admin
   document.documentElement.lang = prefs.lang;
   const d = K.data;
   const now = new Date();
@@ -773,7 +774,7 @@ document.addEventListener('click', async (e) => {
     const inMs = i ? P.fromLocal(d, i) : null;
     let outMs = o ? P.fromLocal(d, o) : null;
     if (inMs != null && outMs != null && outMs <= inMs) outMs = P.fromLocal(P.addDays(d, 1), o);
-    const row = { staff_id: $('#e-staff').value, loc: $('#e-loc').value, note: $('#e-note').value.trim(), clock_in: iso(inMs), clock_out: iso(outMs), edit_reason: $('#e-reason').value.trim() || t('manual') };
+    const row = { staff_id: $('#e-staff').value, loc: $('#e-loc').value, note: $('#e-note').value.trim(), clock_in: iso(inMs), clock_out: iso(outMs), edit_reason: $('#e-reason').value.trim() || (ui.newPunch ? null : t('manual')) };
     const isNew = !!ui.newPunch;
     const { error } = isNew ? await sb.from('punches').insert({ ...row, source: 'manual' }) : await sb.from('punches').update(row).eq('id', ui.editId);
     if (error) return fail(error);
