@@ -1,0 +1,28 @@
+# Cake pickup reminders: 17:00 the day before and 08:00 on the day (store time). Also keeps the database awake.
+name: cake reminders
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      test:
+        description: 'Send a test notification to every device'
+        type: boolean
+        default: false
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i --no-save web-push@3
+      - run: node .github/scripts/remind.mjs
+        env:
+          SUPABASE_URL: https://pyxunhxrkeefgaduhibv.supabase.co
+          SUPABASE_KEY: sb_publishable_QGEIdtWUoj-QJo_sxEy7oQ_OgI1GuNn
+          REMINDER_SECRET: ${{ secrets.REMINDER_SECRET }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          TEST: ${{ inputs.test }}

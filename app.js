@@ -48,6 +48,16 @@ const TXT = {
     // admin
     kioskBanner: '이 아이패드는 매장 출퇴근 기기예요. 관리 화면은 5분 동안 안 쓰면 자동으로 닫혀요.', toKiosk: '출퇴근 화면으로',
     guideTitle: '이렇게 시작해요', g1: '직원 등록', g1d: '이름, 시급, PIN(선택)을 넣어요.', g2: '매장 아이패드 등록', g2d: '아이패드에서 로그인 → 설정 → "이 기기를 출퇴근 기기로 등록".', g3: '출퇴근 시작', g3d: '직원은 아이패드에서 이름 누르고 출근/퇴근. 급여는 자동 계산돼요.',
+    tabOrders: '케이크 예약', kClockTab: '출퇴근', kOrdersTab: '케이크 예약',
+    oTitle: '케이크 예약', oAdd: '예약 추가', oUpcoming: '다가오는 예약', oPast: '지난 예약', oNone: '예약이 없어요', oNoneD: '[예약 추가]를 눌러 케이크 예약을 넣으세요.',
+    oToday: '오늘', oTomorrow: '내일', oInDays: '{n}일 후', oAgo: '{n}일 전', oNoTime: '시간 미정',
+    oDate: '픽업 날짜', oTime: '픽업 시간', oCust: '손님 이름', oPhone: '전화번호', oCakes: '케이크', oQty: '개수', oAddLine: '+ 케이크 추가', oOther: '기타 (메모에 적기)', oNote: '메모', oNotePh: '예: 케이크 위 문구 “Happy Birthday 지민”, 초 3개',
+    oPaid: '결제', unpaid: '미결제', deposit: '일부 선결제', paid: '결제 완료', oTaken: '받은 직원', oLoc: '픽업 지점', oPhoto: '영수증 사진', oPhotoAdd: '사진 찍기 / 고르기', oPhotoView: '사진 보기', oPhotoDel: '사진 빼기', oPhotoNew: '새 사진',
+    open: '예약됨', made: '제작 완료', picked: '픽업 완료', cancelled: '취소됨', oMade: '제작 완료', oPicked: '픽업 완료', oCancel: '예약 취소', oCancelQ: '이 예약을 취소할까요?', oReopen: '되돌리기',
+    oNeed: '픽업 날짜와 케이크를 넣어주세요.', oSaved: '예약을 저장했어요.', oSoonToday: '오늘 픽업 {n}건', oSoonTomorrow: '내일 픽업 {n}건', oView: '예약 보기', oPickups: '케이크 픽업', oLog: '기록',
+    cakeList: '케이크 목록', cakeListD: '예약할 때 고르는 케이크예요. 숨기면 목록에서 빠지지만 지난 예약에는 남아요.', cakeAdd: '케이크 추가', cakeNamePh: '새 케이크 이름', cakeHide: '숨기기', cakeShow: '다시 보이기',
+    push: '예약 알림', pushD: '픽업 전날 오후 5시와 당일 아침 8시에 이 기기로 알림이 와요. 아이폰·아이패드는 홈 화면에 추가한 앱에서 켜야 해요.', pushOn: '이 기기에서 알림 받는 중', pushOff: '이 기기는 알림이 꺼져 있어요', pushEnable: '이 기기에서 알림 받기',
+    pushOk: '알림을 켰어요.', pushDenied: '알림이 거부됐어요. 기기 설정에서 알림을 허용해주세요.', pushNeedHome: '아이폰·아이패드는 공유 → 홈 화면에 추가한 뒤, 그 아이콘으로 열어서 눌러주세요.', pushUnsupported: '이 브라우저는 알림을 지원하지 않아요.',
     noteBtn: '시간이 틀렸어요 · 메모 남기기', noteTitle: '정정 요청', notePh2: '예: 실제 출근은 9시였어요', noteSend: '보내기', noteSent: '사장님께 전달했어요.', noteLate: '시간이 지나서 보낼 수 없어요. 사장님께 직접 말해주세요.', noteOffline: '인터넷이 끊겨서 보내지 못했어요. 사장님께 직접 말해주세요.',
     reqTitle: '정정 요청', reqView: '기록 보기', reqDone: '처리 완료', reqDoneOk: '처리 완료로 표시했어요.', reqTag: '정정 요청',
     histTitle: '수정 기록', histD: '근무기록을 누가, 언제, 무엇을, 왜 고쳤는지 전부 보여요. 출퇴근 버튼으로 찍힌 기록은 빼고 보여줘요.', histLoad: '수정 기록 보기', histMore: '더 보기', histNone: '아직 수정한 기록이 없어요.',
@@ -116,6 +126,16 @@ const TXT = {
     online: 'Online', offline: 'Offline', queued: '{n} waiting to upload', admin: 'Admin', cancel: 'Cancel', del: 'Delete',
     kioskBanner: 'This iPad is the store clock. The admin view closes itself after 5 minutes idle.', toKiosk: 'Back to clock',
     guideTitle: 'Getting started', g1: 'Add staff', g1d: 'Name, wage and an optional PIN.', g2: 'Register the store iPad', g2d: 'On the iPad: sign in → Settings → "Use this device as the store clock".', g3: 'Start clocking', g3d: 'Staff tap their name to clock in/out. Pay is calculated for you.',
+    tabOrders: 'Cake orders', kClockTab: 'Clock', kOrdersTab: 'Cake orders',
+    oTitle: 'Cake orders', oAdd: 'New order', oUpcoming: 'Upcoming', oPast: 'Past', oNone: 'No orders', oNoneD: 'Tap [New order] to add a cake pre-order.',
+    oToday: 'Today', oTomorrow: 'Tomorrow', oInDays: 'in {n} days', oAgo: '{n} days ago', oNoTime: 'Time TBD',
+    oDate: 'Pickup date', oTime: 'Pickup time', oCust: 'Customer', oPhone: 'Phone', oCakes: 'Cakes', oQty: 'Qty', oAddLine: '+ Add cake', oOther: 'Other (see note)', oNote: 'Note', oNotePh: 'e.g. “Happy Birthday Jimin” on top, 3 candles',
+    oPaid: 'Payment', unpaid: 'Unpaid', deposit: 'Deposit paid', paid: 'Paid', oTaken: 'Taken by', oLoc: 'Pickup store', oPhoto: 'Receipt photo', oPhotoAdd: 'Take / choose photo', oPhotoView: 'View photo', oPhotoDel: 'Remove photo', oPhotoNew: 'New photo',
+    open: 'Booked', made: 'Made', picked: 'Picked up', cancelled: 'Cancelled', oMade: 'Mark made', oPicked: 'Mark picked up', oCancel: 'Cancel order', oCancelQ: 'Cancel this order?', oReopen: 'Undo',
+    oNeed: 'Enter a pickup date and at least one cake.', oSaved: 'Order saved.', oSoonToday: '{n} pickup(s) today', oSoonTomorrow: '{n} pickup(s) tomorrow', oView: 'View orders', oPickups: 'Cake pickups', oLog: 'History',
+    cakeList: 'Cake list', cakeListD: 'The cakes offered when taking an order. Hidden cakes stay on past orders.', cakeAdd: 'Add cake', cakeNamePh: 'New cake name', cakeHide: 'Hide', cakeShow: 'Show',
+    push: 'Order reminders', pushD: 'This device gets a reminder at 5 pm the day before and 8 am on pickup day. On iPhone/iPad, turn it on from the home-screen app.', pushOn: 'Reminders on for this device', pushOff: 'Reminders off for this device', pushEnable: 'Get reminders on this device',
+    pushOk: 'Reminders turned on.', pushDenied: 'Notifications were blocked. Allow them in the device settings.', pushNeedHome: 'On iPhone/iPad: Share → Add to Home Screen, open the app from that icon, then tap this.', pushUnsupported: 'This browser does not support notifications.',
     noteBtn: 'Time is wrong · leave a note', noteTitle: 'Correction request', notePh2: 'e.g. I actually started at 9', noteSend: 'Send', noteSent: 'Sent to the owner.', noteLate: 'Too late to send. Please tell the owner directly.', noteOffline: 'No internet — not sent. Please tell the owner directly.',
     reqTitle: 'Correction requests', reqView: 'Open record', reqDone: 'Mark done', reqDoneOk: 'Marked as done.', reqTag: 'Correction',
     histTitle: 'Edit history', histD: 'Who changed which time record, when and why. Plain clock-in/out taps are left out.', histLoad: 'Show edit history', histMore: 'Load more', histNone: 'No edits yet.',
@@ -184,12 +204,13 @@ const app = { mode: 'boot', authView: 'in', authMsg: '', recovering: false, hasO
 const ui = { tab: 'today', off: 0, open: {}, editId: null, newPunch: null, staffEdit: null, cardStaff: 'all', onlyIssues: false, csv: '', confirm: null, logs: {}, regOpen: false, busy: false };
 let D = null; // admin data
 const h = location.hash.slice(1);
-if (['today', 'cards', 'pay', 'staff', 'settings'].includes(h)) ui.tab = h;
+if (['today', 'orders', 'cards', 'pay', 'staff', 'settings'].includes(h)) ui.tab = h;
 
 function toast(msg) { const el = $('#toast'); el.textContent = msg; el.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => { el.hidden = true; }, 3200); }
 const fail = (error) => toast(/fetch|network/i.test(error?.message || '') ? t('netFail') : t('saveFail', { m: error?.message || '?' }));
 
 const I = {
+  orders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M5 20v-6h14v6M7 14v-3h10v3M12 11V8"/><path d="M12 5.5c.8 0 1.2-.7 1.2-1.3S12 2.5 12 2.5s-1.2 1.1-1.2 1.7.4 1.3 1.2 1.3z"/></svg>',
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
   pay: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.01M18 15v.01"/></svg>',
@@ -200,9 +221,222 @@ const av = (name) => `<span class="av">${esc(initial(name))}</span>`;
 const langSeg = () => `<div class="seg lang" role="group" aria-label="Language"><button data-act="lang" data-id="ko" aria-pressed="${prefs.lang === 'ko'}">한</button><button data-act="lang" data-id="en" aria-pressed="${prefs.lang === 'en'}">EN</button></div>`;
 
 // =====================================================================
+// CAKE PRE-ORDERS (same screen on the store iPad and in the admin app)
+// =====================================================================
+const O = { items: [], orders: [], past: false, editId: null, draft: null, isNew: false, photo: {}, logs: {}, confirm: null };
+const inKiosk = () => app.mode === 'kiosk';
+const OPEN_ST = ['open', 'made'];
+const cakeSummary = (o) => (o.items || []).map((i) => `${i.name}${i.qty > 1 ? ' ×' + i.qty : ''}`).join(', ');
+const dayLabel = (d) => { const n = P.daysBetween(today(), d); return n === 0 ? t('oToday') : n === 1 ? t('oTomorrow') : n > 1 ? t('oInDays', { n }) : t('oAgo', { n: -n }); };
+
+async function ordersLoad() {
+  const from = O.past ? P.addDays(today(), -120) : P.addDays(today(), -1);
+  const to = O.past ? P.addDays(today(), -1) : P.addDays(today(), 400);
+  if (inKiosk()) {
+    const { data, error } = await sb.rpc('kiosk_orders', { p_token: deviceToken(), p_from: from, p_to: to });
+    if (error) throw error;
+    O.items = data.items; O.orders = data.orders;
+  } else {
+    const [it, od] = await Promise.all([
+      sb.from('cake_items').select('*').order('sort').order('name'),
+      sb.from('orders').select('*').gte('pickup_date', from).lte('pickup_date', to).order('pickup_date').order('pickup_time'),
+    ]);
+    if (it.error) throw it.error;
+    if (od.error) throw od.error;
+    O.items = it.data; O.orders = od.data;
+  }
+  if (O.past) O.orders.reverse();
+}
+async function orderSave(id, data, photo) {
+  if (inKiosk()) {
+    const { data: row, error } = await sb.rpc('kiosk_order_save', { p_token: deviceToken(), p_id: id, p_data: data, p_photo: photo ?? null });
+    if (error) throw error;
+    return row;
+  }
+  const r = id ? await sb.from('orders').update(data).eq('id', id).select().single() : await sb.from('orders').insert({ ...data, created_by: D.me.id }).select().single();
+  if (r.error) throw r.error;
+  if (photo != null) {
+    const { error } = await sb.from('order_photos').upsert({ order_id: r.data.id, data: photo });
+    if (error) throw error;
+    await sb.from('orders').update({ has_photo: photo !== '' }).eq('id', r.data.id);
+  }
+  return r.data;
+}
+async function orderPhoto(id) {
+  if (O.photo[id] !== undefined) return;
+  if (inKiosk()) { const { data } = await sb.rpc('kiosk_order_photo', { p_token: deviceToken(), p_id: id }); O.photo[id] = data || ''; }
+  else { const { data } = await sb.from('order_photos').select('data').eq('order_id', id).maybeSingle(); O.photo[id] = data?.data || ''; }
+}
+function resizeImage(file) {
+  return new Promise((ok, no) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 900 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      ok(c.toDataURL('image/jpeg', 0.6));
+    };
+    img.onerror = no;
+    img.src = URL.createObjectURL(file);
+  });
+}
+const staffNames = () => (inKiosk() ? (K.data?.staff || []).map((s) => s.name) : (D?.staff || []).filter((s) => s.active).map((s) => s.name));
+function blankOrder() {
+  return { pickup_date: P.addDays(today(), 1), pickup_time: '', customer: '', phone: '', items: [{ name: O.items.find((i) => i.active)?.name || '', qty: 1 }], note: '', paid: 'unpaid', taken_by: '', loc: inKiosk() ? K.data?.device?.loc : (prefs.loc === 'all' ? 'langley' : prefs.loc), photo: null };
+}
+// Read the open form back into O.draft so re-renders never lose typing.
+function collectDraft() {
+  if (!O.draft || !$('#o-date')) return;
+  const lines = [...document.querySelectorAll('.o-line')].map((row) => ({ name: row.querySelector('select').value, qty: Math.max(1, +row.querySelector('input').value || 1) }));
+  Object.assign(O.draft, {
+    pickup_date: $('#o-date').value, pickup_time: $('#o-time').value, customer: $('#o-cust').value.trim(), phone: $('#o-phone').value.trim(),
+    items: lines, note: $('#o-note').value.trim(), paid: $('#o-paid').value, taken_by: $('#o-taken').value.trim(),
+    loc: $('#o-loc') ? $('#o-loc').value : O.draft.loc,
+  });
+}
+function orderForm(o) {
+  const dr = O.draft, act = O.items.filter((i) => i.active);
+  const names = [...new Set([...act.map((i) => i.name), ...dr.items.map((i) => i.name).filter(Boolean), t('oOther')])];
+  const photo = dr.photo != null ? dr.photo : (o?.has_photo ? O.photo[o.id] : '');
+  const log = o && !inKiosk() ? O.logs[o.id] : null;
+  return `<div class="editbox">
+    <div class="form">
+      <label class="f">${t('oDate')}<input id="o-date" type="date" value="${dr.pickup_date}"></label>
+      <label class="f">${t('oTime')}<input id="o-time" type="time" value="${dr.pickup_time}"></label>
+      <label class="f">${t('oCust')}<input id="o-cust" maxlength="80" value="${esc(dr.customer)}"></label>
+      <label class="f">${t('oPhone')}<input id="o-phone" type="tel" maxlength="40" value="${esc(dr.phone)}"></label>
+    </div>
+    <div class="set-group" style="gap:8px"><b style="font-size:13px;color:var(--muted)">${t('oCakes')}</b>
+      ${dr.items.map((it, i) => `<div class="o-line inline-actions"><select class="sel" aria-label="${t('oCakes')}">${names.map((n) => `<option ${n === it.name ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+        <input class="sel" type="number" inputmode="numeric" min="1" max="99" value="${it.qty}" aria-label="${t('oQty')}" style="width:72px">
+        ${dr.items.length > 1 ? `<button class="btn ghost" data-act="oDelLine" data-id="${i}" aria-label="${t('del')}">✕</button>` : ''}</div>`).join('')}
+      <div><button class="btn" data-act="oAddLine">${t('oAddLine')}</button></div></div>
+    <label class="f">${t('oNote')}<textarea id="o-note" class="sel" rows="3" maxlength="500" placeholder="${t('oNotePh')}" style="font:inherit;font-size:16px">${esc(dr.note)}</textarea></label>
+    <div class="form">
+      <label class="f">${t('oPaid')}<select id="o-paid">${['unpaid', 'deposit', 'paid'].map((p) => `<option value="${p}" ${dr.paid === p ? 'selected' : ''}>${t(p)}</option>`).join('')}</select></label>
+      <label class="f">${t('oTaken')}<input id="o-taken" list="o-staff" maxlength="60" value="${esc(dr.taken_by)}"><datalist id="o-staff">${staffNames().map((n) => `<option value="${esc(n)}">`).join('')}</datalist></label>
+      ${inKiosk() ? '' : `<label class="f">${t('oLoc')}<select id="o-loc">${P.LOCS.map((l) => `<option value="${l}" ${dr.loc === l ? 'selected' : ''}>${t(l)}</option>`).join('')}</select></label>`}
+    </div>
+    <div class="set-group" style="gap:8px"><b style="font-size:13px;color:var(--muted)">${t('oPhoto')}</b>
+      ${photo ? `<img src="${photo}" alt="${t('oPhoto')}" style="max-width:min(100%,320px);border-radius:10px;border:1px solid var(--line)">` : ''}
+      <div class="inline-actions"><label class="btn" style="cursor:pointer">${photo ? t('oPhotoNew') : t('oPhotoAdd')}<input id="o-photo" type="file" accept="image/*" hidden></label>
+        ${o?.has_photo && O.photo[o.id] === undefined && dr.photo == null ? `<button class="btn" data-act="oPhotoView">${t('oPhotoView')}</button>` : ''}
+        ${photo ? `<button class="btn ghost" data-act="oPhotoDel">${t('oPhotoDel')}</button>` : ''}</div></div>
+    <div class="inline-actions"><button class="btn primary" data-act="oSave">${t('save')}</button><button class="btn ghost" data-act="oClose">${t('cancel')}</button></div>
+    ${o ? (O.confirm === 'cancel' ? `<div class="confirm">${t('oCancelQ')}<button class="btn primary" data-act="oStatus" data-id="cancelled">${t('oCancel')}</button><button class="btn ghost" data-act="oNoConfirm">${t('cancel')}</button></div>`
+      : `<div class="inline-actions" style="border-top:1px dashed var(--line);padding-top:12px">
+        ${o.status === 'open' ? `<button class="btn" data-act="oStatus" data-id="made">${t('oMade')}</button>` : ''}
+        ${OPEN_ST.includes(o.status) ? `<button class="btn primary" data-act="oStatus" data-id="picked">${t('oPicked')}</button><button class="btn ghost" data-act="oAskCancel">${t('oCancel')}</button>` : `<button class="btn" data-act="oStatus" data-id="open">${t('oReopen')}</button>`}</div>`) : ''}
+    ${log ? `<div class="log"><b style="color:var(--ink)">${t('oLog')}</b>${log.map((l) => `<span>${fmtDay(P.local(Date.parse(l.at)).ymd)} ${hmOf(Date.parse(l.at))} · ${esc(logWho(l))} · ${l.action === 'create' ? t('actCreate') : Object.keys(l.new || {}).filter((k) => JSON.stringify(l.old?.[k]) !== JSON.stringify(l.new[k])).map((k) => k === 'status' ? t(l.new[k]) : k === 'paid' ? t(l.new[k]) : k === 'pickup_date' ? `${t('oDate')} ${l.new[k]}` : k === 'items' ? cakeSummary(l.new) : k).join(', ')}</span>`).join('')}</div>` : ''}
+  </div>`;
+}
+function viewOrders() {
+  const list = O.orders.filter((o) => inKiosk() || inLoc(o.loc));
+  const byDay = {};
+  list.forEach((o) => (byDay[o.pickup_date] ||= []).push(o));
+  const pillPaid = (p) => `<span class="pill ${p === 'unpaid' ? 'alert' : p === 'paid' ? 'on' : ''}">${t(p)}</span>`;
+  const dayCount = (os) => { const c = {}; os.filter((o) => OPEN_ST.includes(o.status)).forEach((o) => (o.items || []).forEach((i) => { c[i.name] = (c[i.name] || 0) + (+i.qty || 1); })); return Object.entries(c).map(([n, q]) => `${esc(n)} ${q}`).join(' · '); };
+  return `
+    <div class="head"><h2>${t('oTitle')}</h2>
+      <div class="inline-actions"><div class="seg" role="group"><button data-act="oRange" data-id="up" aria-pressed="${!O.past}">${t('oUpcoming')}</button><button data-act="oRange" data-id="past" aria-pressed="${O.past}">${t('oPast')}</button></div>
+      <button class="btn primary" data-act="oNew">${t('oAdd')}</button></div></div>
+    ${O.isNew ? `<div class="card">${orderForm(null)}</div>` : ''}
+    ${list.length ? `<div class="card">${Object.entries(byDay).map(([d, os]) => `
+      <div class="day-h"><span>${fmtDay(d)} · ${dayLabel(d)}</span><span class="muted">${dayCount(os)}</span></div>
+      ${os.map((o) => `<div class="row click" data-act="oEdit" data-id="${o.id}" style="${OPEN_ST.includes(o.status) ? '' : 'opacity:.55'}">
+        <div><div class="who"><span class="num">${o.pickup_time || t('oNoTime')}</span><span>${esc(o.customer || o.phone || '—')}</span></div>
+          <div class="sub"><span style="color:var(--ink);font-weight:600">${esc(cakeSummary(o))}</span>${pillPaid(o.paid)}${o.status !== 'open' ? `<span class="pill ${o.status === 'cancelled' ? '' : 'on'}">${t(o.status)}</span>` : ''}${o.has_photo ? '<span class="pill">📷</span>' : ''}${!inKiosk() && prefs.loc === 'all' ? `<span>${t(o.loc)}</span>` : ''}</div>
+          ${o.note ? `<div class="sub" style="color:var(--ink)">${esc(o.note)}</div>` : ''}</div>
+        <div class="note">${esc(o.phone)}</div></div>${O.editId === o.id ? orderForm(o) : ''}`).join('')}`).join('')}</div>`
+    : (O.isNew ? '' : `<div class="card empty"><h3>${t('oNone')}</h3><p class="note">${t('oNoneD')}</p></div>`)}`;
+}
+// Today / tomorrow pickups (open or made), for banners.
+const soonOrders = () => { const td = today(), tm = P.addDays(td, 1); const os = O.orders.filter((o) => OPEN_ST.includes(o.status) && (inKiosk() || inLoc(o.loc))); return { today: os.filter((o) => o.pickup_date === td), tomorrow: os.filter((o) => o.pickup_date === tm) }; };
+
+async function orderAction(act, el, id) {
+  if (act === 'oRange') { O.past = id === 'past'; O.editId = null; O.isNew = false; O.draft = null; await ordersLoad().catch(fail); render(); return true; }
+  if (act === 'oNew') { O.isNew = true; O.editId = null; O.draft = blankOrder(); O.confirm = null; render(); $('#o-cust')?.focus(); return true; }
+  if (act === 'oEdit') {
+    if (O.editId === id) { O.editId = null; O.draft = null; render(); return true; }
+    const o = O.orders.find((x) => x.id === id);
+    O.editId = id; O.isNew = false; O.confirm = null;
+    O.draft = { pickup_date: o.pickup_date, pickup_time: o.pickup_time, customer: o.customer, phone: o.phone, items: (o.items || []).map((i) => ({ ...i })), note: o.note, paid: o.paid, taken_by: o.taken_by, loc: o.loc, photo: null };
+    if (!O.draft.items.length) O.draft.items = [{ name: O.items[0]?.name || '', qty: 1 }];
+    render();
+    if (!inKiosk() && !O.logs[id]) { const { data } = await sb.from('order_log').select('*').eq('order_id', id).order('id'); O.logs[id] = data || []; render(); }
+    return true;
+  }
+  if (act === 'oClose') { O.editId = null; O.isNew = false; O.draft = null; render(); return true; }
+  if (act === 'oAddLine') { collectDraft(); O.draft.items.push({ name: O.items.find((i) => i.active)?.name || '', qty: 1 }); render(); return true; }
+  if (act === 'oDelLine') { collectDraft(); O.draft.items.splice(+id, 1); render(); return true; }
+  if (act === 'oPhotoView') { collectDraft(); await orderPhoto(O.editId); render(); return true; }
+  if (act === 'oPhotoDel') { collectDraft(); O.draft.photo = ''; render(); return true; }
+  if (act === 'oAskCancel') { collectDraft(); O.confirm = 'cancel'; render(); return true; }
+  if (act === 'oNoConfirm') { collectDraft(); O.confirm = null; render(); return true; }
+  if (act === 'oSave' || act === 'oStatus') {
+    collectDraft();
+    const dr = O.draft;
+    dr.items = dr.items.filter((i) => i.name);
+    if (!dr.pickup_date || !dr.items.length) { toast(t('oNeed')); if (!dr.items.length) dr.items.push({ name: '', qty: 1 }); return true; }
+    const data = { pickup_date: dr.pickup_date, pickup_time: dr.pickup_time, customer: dr.customer, phone: dr.phone, items: dr.items, note: dr.note, paid: dr.paid, taken_by: dr.taken_by };
+    if (!inKiosk()) data.loc = dr.loc;
+    if (act === 'oStatus') data.status = id;
+    el.disabled = true;
+    try {
+      const row = await orderSave(O.isNew ? null : O.editId, data, dr.photo);
+      if (dr.photo != null) O.photo[row.id] = dr.photo;
+      delete O.logs[row.id];
+      O.editId = null; O.isNew = false; O.draft = null; O.confirm = null;
+      await ordersLoad();
+      toast(act === 'oStatus' ? t(id) : t('oSaved'));
+    } catch (err) { fail(err); }
+    render();
+    return true;
+  }
+  return false;
+}
+document.addEventListener('change', async (e) => {
+  if (e.target.id !== 'o-photo' || !e.target.files?.[0]) return;
+  collectDraft();
+  try { O.draft.photo = await resizeImage(e.target.files[0]); } catch (err) { fail(err); }
+  render();
+});
+
+// ---------- web push ----------
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const b64u = (s) => { const p = '='.repeat((4 - (s.length % 4)) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, (c) => c.charCodeAt(0)); };
+async function pushCheck() {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    const sub = await reg?.pushManager?.getSubscription();
+    if (!sub) { app.pushOn = false; return; }
+    const { data } = await sb.rpc('push_status', { p_endpoint: sub.endpoint });
+    app.pushOn = !!data;
+  } catch { app.pushOn = false; }
+}
+async function pushEnable() {
+  if (isIOS() && !isStandalone()) { toast(t('pushNeedHome')); return; }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || !cfg.vapidPublicKey) { toast(t('pushUnsupported')); return; }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') { toast(t('pushDenied')); return; }
+  const reg = await navigator.serviceWorker.ready;
+  const sub = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(cfg.vapidPublicKey) }));
+  const j = sub.toJSON();
+  const args = { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth };
+  const { error } = inKiosk() ? await sb.rpc('kiosk_push_subscribe', { p_token: deviceToken(), ...args }) : await sb.rpc('push_subscribe', args);
+  if (error) throw error;
+  app.pushOn = true; toast(t('pushOk')); render();
+}
+const pushCard = () => `<div class="card pad set-group"><h3>${t('push')}</h3><p class="note">${t('pushD')}</p>
+  ${app.pushOn ? `<p><span class="pill on">✓</span> ${t('pushOn')}</p>` : `<p class="muted">${t('pushOff')}</p><div><button class="btn primary" data-act="pushEnable">${t('pushEnable')}</button></div>`}</div>`;
+
+// =====================================================================
 // KIOSK (store iPad)
 // =====================================================================
-const K = { data: store.get(K_CACHE, null), online: true, pick: null, pin: '', shake: false, done: null, lastTouch: Date.now() };
+const K = { view: 'clock', soon: null, data: store.get(K_CACHE, null), online: true, pick: null, pin: '', shake: false, done: null, lastTouch: Date.now() };
 const deviceToken = () => store.get(K_DEVICE, null);
 const queue = () => store.get(K_QUEUE, []);
 
@@ -214,8 +448,10 @@ async function kioskLoad() {
     K.online = false;
   } else {
     K.online = true; K.data = data; store.set(K_CACHE, data);
+    const so = await sb.rpc('kiosk_orders', { p_token: deviceToken(), p_from: today(), p_to: P.addDays(today(), 1) });
+    if (!so.error) { const os = so.data.orders.filter((o) => OPEN_ST.includes(o.status)); K.soon = { today: os.filter((o) => o.pickup_date === today()).length, tomorrow: os.filter((o) => o.pickup_date !== today()).length }; }
   }
-  if (app.mode === 'kiosk' && !K.noting) renderKiosk();
+  if (app.mode === 'kiosk' && !K.noting && K.view === 'clock') renderKiosk();
 }
 
 async function kioskFlush() {
@@ -278,10 +514,12 @@ function renderKiosk() {
   $('#root').innerHTML = `
     <header class="k-top">
       <div class="brand"><b>Cafe Ricotta</b><span class="where">${esc(t(d.device.loc))}</span></div>
+      <div class="seg" role="group"><button data-act="kView" data-id="clock" aria-pressed="${K.view === 'clock'}">${t('kClockTab')}</button><button data-act="kView" data-id="orders" aria-pressed="${K.view === 'orders'}">${t('kOrdersTab')}</button></div>
       <span class="k-clock" id="kClock">${hmOf(now.getTime())}</span>
       ${langSeg()}
     </header>
-    <main class="k-main">
+    ${K.view === 'orders' ? `<main class="k-main">${viewOrders()}${pushCard()}<div class="k-foot"><span></span><button class="btn ghost" data-act="kAdmin">${t('admin')}</button></div></main>` : `<main class="k-main">
+      ${K.soon && (K.soon.today || K.soon.tomorrow) ? `<div class="banner"><span>🎂 ${[K.soon.today ? t('oSoonToday', { n: K.soon.today }) : '', K.soon.tomorrow ? t('oSoonTomorrow', { n: K.soon.tomorrow }) : ''].filter(Boolean).join(' · ')}</span><button class="btn" data-act="kView" data-id="orders">${t('oView')}</button></div>` : ''}
       ${d.staff.length ? `
       <div class="head"><h2>${t('tapName')}</h2></div>
       <div class="k-names">${d.staff.map((s) => `<button class="k-name ${s.open ? 'in' : ''}" data-act="kPick" data-id="${s.id}" aria-pressed="${K.pick === s.id}">${av(s.name)}<span>${esc(s.name)}</span><span class="st">${s.open ? t('since', { t: hmOf(Date.parse(s.open)) }) : t('off')}</span></button>`).join('')}</div>
@@ -296,7 +534,7 @@ function renderKiosk() {
         <span class="dot-status ${K.online ? '' : 'off'}"><i></i>${K.online ? t('online') : t('offline')}${q ? ' · ' + t('queued', { n: q }) : ''}</span>
         <button class="btn ghost" data-act="kAdmin">${t('admin')}</button>
       </div>
-    </main>
+    </main>`}
     ${pick ? `<div class="k-sheet" data-act="kCancel"><div class="card k-panel" role="dialog" aria-modal="true" aria-label="${esc(pick.name)}">
       <h3>${esc(pick.name)} · ${pick.open ? t('clockOut') : t('clockIn')}</h3>
       <p class="muted">${pick.open ? t('since', { t: hmOf(Date.parse(pick.open)) }) : t('off')}</p>
@@ -408,6 +646,8 @@ async function loadAll(minFrom) {
     const rq = await sb.from('requests').select('*').eq('resolved', false).order('created_at');
     if (rq.error) throw rq.error;
     D.requests = rq.data;
+    if (!O.draft) await ordersLoad();
+    pushCheck().then(() => { if (app.mode === 'admin' && ui.tab === 'settings') render(); });
     if (isOwner()) {
       const [wg, iv, tp] = await Promise.all([
         sb.from('staff_wages').select('*').order('effective'),
@@ -483,6 +723,7 @@ function viewToday() {
       ${todays.length ? todays.map((p) => { const s = staffById(p.staffId); return `<div class="row"><div><div class="who">${av(s?.name)}<span>${esc(s?.name)}</span></div><div class="sub"><span>${t(p.loc)}</span></div></div><div class="num">${p.inMs ? hmOf(p.inMs) : '?'} – ${p.outMs ? hmOf(p.outMs) : ''}</div></div>`; }).join('') : `<div class="row"><span class="muted">${t('noToday')}</span></div>`}
     </div>
     ${D.requests.filter((r) => inLoc(staffById(r.staff_id)?.loc || 'all')).length ? `<div class="card"><div class="day-h"><span>${t('reqTitle')}</span><span class="num">${D.requests.length}</span></div>${D.requests.map((r) => { const s = staffById(r.staff_id); const p = D.punches.find((x) => x.id === r.punch_id); return `<div class="row"><div><div class="who">${av(s?.name)}<span>${esc(s?.name)}</span></div><div class="sub"><span>${fmtDay(P.local(Date.parse(r.created_at)).ymd)} ${hmOf(Date.parse(r.created_at))}</span>${p ? `<span class="num">${p.inMs ? hmOf(p.inMs) : '?'} – ${p.outMs ? hmOf(p.outMs) : '?'}</span>` : ''}</div><div style="margin-top:4px">“${esc(r.message)}”</div></div><div class="inline-actions">${r.punch_id ? `<button class="btn" data-act="reqOpen" data-id="${r.punch_id}">${t('reqView')}</button>` : ''}<button class="btn primary" data-act="reqDone" data-id="${r.id}">${t('reqDone')}</button></div></div>`; }).join('')}</div>` : ''}
+    ${(() => { const s = soonOrders(); const os = [...s.today, ...s.tomorrow]; return os.length ? `<div class="card"><div class="day-h"><span>🎂 ${t('oPickups')}</span><button class="btn" data-act="goTab" data-tab="orders" style="padding:3px 10px">${t('oView')}</button></div>${os.map((o) => `<div class="row"><div><div class="who"><span class="num">${o.pickup_date === today() ? t('oToday') : t('oTomorrow')} ${o.pickup_time || ''}</span><span>${esc(o.customer || o.phone)}</span></div><div class="sub"><span style="color:var(--ink)">${esc(cakeSummary(o))}</span>${o.paid === 'unpaid' ? `<span class="pill alert">${t('unpaid')}</span>` : ''}${o.status === 'made' ? `<span class="pill on">${t('made')}</span>` : ''}</div></div></div>`).join('')}</div>` : ''; })()}
     ${statCard()}
     ${devs.length ? `<div class="card"><div class="day-h"><span>${t('devicesNow')}</span></div>${devs.map((d) => `<div class="row"><div><b>${esc(d.name)}</b><div class="sub"><span>${t(d.loc)}</span></div></div><div class="note">${t('lastSeen', { t: ago(d.last_seen) })}</div></div>`).join('')}</div>` : ''}
     ${setupDone ? '' : guide()}`;
@@ -761,6 +1002,10 @@ function viewSettings() {
       <div class="form"><label class="f">${t('vacPct')}${num('s-vacpct', st.vac?.pct ?? 4, 1)}</label></div><p class="note">${t('vacD')}</p></div>
     <div class="card pad set-group"><h3>${t('tipsH')}</h3><label class="check"><input type="checkbox" id="s-tips" ${st.tipsOn ? 'checked' : ''} ${dis}> ${t('tipsOn')}</label>
       <div class="form"><label class="f">${t('tipM')}<select id="s-tipm" ${dis}><option value="hours" ${st.tipMethod === 'hours' ? 'selected' : ''}>${t('byHours')}</option><option value="equal" ${st.tipMethod === 'equal' ? 'selected' : ''}>${t('equally')}</option></select></label></div></div>
+    ${pushCard()}
+    <div class="card pad set-group"><h3>${t('cakeList')}</h3><p class="note">${t('cakeListD')}</p>
+      <div class="card">${O.items.map((c) => `<div class="row" style="${c.active ? '' : 'opacity:.55'}"><input class="sel" data-cake="${c.id}" value="${esc(c.name)}" maxlength="60" aria-label="${t('name')}"><button class="btn" data-act="cakeToggle" data-id="${c.id}">${c.active ? t('cakeHide') : t('cakeShow')}</button></div>`).join('')}</div>
+      <div class="inline-actions"><input class="sel" id="cake-new" maxlength="60" placeholder="${t('cakeNamePh')}"><button class="btn" data-act="cakeAdd">${t('cakeAdd')}</button></div></div>
     <div class="card pad set-group"><h3>${t('histTitle')}</h3><p class="note">${t('histD')}</p>
       ${ui.hist ? (ui.hist.length ? `<div class="log">${ui.hist.map((l) => logLine(l, true)).join('')}</div>` : `<p class="muted">${t('histNone')}</p>`) : ''}
       <div>${!ui.hist ? `<button class="btn" data-act="histLoad">${t('histLoad')}</button>` : ui.histMore ? `<button class="btn" data-act="histLoad">${t('histMore')}</button>` : ''}</div></div>
@@ -771,12 +1016,12 @@ function viewSettings() {
       <div class="inline-actions"><button class="btn" data-act="changePw">${t('changePw')}</button><button class="btn" data-act="signOut">${t('signOut')}</button></div></div>`;
 }
 
-const TABS = [['today', 'tabToday'], ['cards', 'tabCards'], ['pay', 'tabPay'], ['staff', 'tabStaff'], ['settings', 'tabSet']];
+const TABS = [['today', 'tabToday'], ['orders', 'tabOrders'], ['cards', 'tabCards'], ['pay', 'tabPay'], ['staff', 'tabStaff'], ['settings', 'tabSet']];
 function renderAdmin() {
   document.documentElement.lang = prefs.lang;
   const tabs = TABS.filter(([id]) => id !== 'pay' || isOwner());
   if (!tabs.some(([id]) => id === ui.tab)) ui.tab = 'today';
-  const view = D.settings ? { today: viewToday, cards: viewCards, pay: viewPay, staff: viewStaff, settings: viewSettings }[ui.tab]() : `<p class="muted">${t('loading')}</p>`;
+  const view = D.settings ? { today: viewToday, orders: viewOrders, cards: viewCards, pay: viewPay, staff: viewStaff, settings: viewSettings }[ui.tab]() : `<p class="muted">${t('loading')}</p>`;
   const y = window.scrollY;
   $('#root').innerHTML = `
     <header class="top"><div class="top-in">
@@ -824,6 +1069,9 @@ document.addEventListener('click', async (e) => {
   if (act === 'authView') { app.authView = id; app.authMsg = ''; renderLogin(); return; }
   if (act === 'retryJoin') { enterAdmin(); return; }
 
+  if (act === 'pushEnable') { try { await pushEnable(); } catch (err) { fail(err); } return; }
+  if (/^o[A-Z]/.test(act) && (app.mode === 'kiosk' || app.mode === 'admin')) { if (await orderAction(act, el, id)) return; }
+  if (act === 'kView') { K.view = id; O.editId = null; O.isNew = false; O.draft = null; if (id === 'orders') { renderKiosk(); try { await ordersLoad(); } catch (err) { fail(err); } pushCheck().then(() => renderKiosk()); } renderKiosk(); if (id === 'clock') kioskLoad(); return; }
   // kiosk
   if (act === 'kPick') { K.pick = K.pick === id ? null : id; K.pin = ''; renderKiosk(); return; }
   if (act === 'kCancel') { if (el.classList.contains('k-sheet') && e.target !== el) return; K.pick = null; K.pin = ''; renderKiosk(); return; }
@@ -872,6 +1120,16 @@ document.addEventListener('click', async (e) => {
     const { data, error } = await sb.from('punch_log').select('*').neq('action', 'kiosk').order('id', { ascending: false }).range(from, from + 49);
     if (error) return fail(error);
     ui.hist = (ui.hist || []).concat(data); ui.histMore = data.length === 50; render();
+  }
+  else if (act === 'cakeAdd') {
+    const name = $('#cake-new').value.trim(); if (!name) return;
+    const { error } = await sb.from('cake_items').insert({ name, sort: O.items.length + 1 }); if (error) return fail(error);
+    await ordersLoad(); render();
+  }
+  else if (act === 'cakeToggle') {
+    const c = O.items.find((x) => x.id === id);
+    const { error } = await sb.from('cake_items').update({ active: !c.active }).eq('id', id); if (error) return fail(error);
+    await ordersLoad(); render();
   }
   else if (act === 'goIssues') { ui.onlyIssues = true; ui.cardStaff = 'all'; go('cards'); }
   else if (act === 'noConfirm') { ui.confirm = null; render(); }
@@ -1015,6 +1273,7 @@ document.addEventListener('change', async (e) => {
   const el = e.target;
   if (app.mode !== 'admin' || !D) return;
   if (el.id === 'cardStaff') { ui.cardStaff = el.value; render(); return; }
+  if (el.dataset.cake) { const name = el.value.trim(); if (!name) return; const { error } = await sb.from('cake_items').update({ name }).eq('id', el.dataset.cake); if (error) return fail(error); await ordersLoad(); toast(t('saved')); return; }
   if (el.id === 'onlyIssues') { ui.onlyIssues = el.checked; render(); return; }
   if (el.dataset.tip) {
     const [period_start, loc] = el.dataset.tip.split('|'), v = el.value;
@@ -1045,7 +1304,8 @@ setInterval(() => {
   if (c) c.textContent = hmOf(Date.now());
 }, 10000);
 setInterval(() => {
-  if (app.mode === 'kiosk') {
+  if (app.mode === 'kiosk' && K.view === 'orders' && !O.draft && Date.now() - K.lastTouch > 5 * 60000) { K.view = 'clock'; renderKiosk(); kioskLoad(); }
+  if (app.mode === 'kiosk' && K.view === 'clock') {
     if (K.pick && Date.now() - K.lastTouch > 30000) { K.pick = null; K.pin = ''; renderKiosk(); }
     if (!K.pick && !K.done) kioskLoad();
   }
@@ -1055,8 +1315,8 @@ setInterval(() => {
 setInterval(() => { if (app.mode === 'admin' && D && ui.tab === 'today' && document.visibilityState === 'visible' && !ui.editId) loadAll(); }, 60000);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
-  if (app.mode === 'kiosk') kioskLoad();
-  else if (app.mode === 'admin' && D && !ui.editId && !ui.staffEdit && !ui.newPunch) loadAll();
+  if (app.mode === 'kiosk' && K.view === 'clock') kioskLoad();
+  else if (app.mode === 'admin' && D && !O.draft && !ui.editId && !ui.staffEdit && !ui.newPunch) loadAll();
 });
 window.addEventListener('online', () => { if (app.mode === 'kiosk') kioskLoad(); });
 document.addEventListener('keydown', () => { K.lastTouch = Date.now(); });

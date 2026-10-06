@@ -1,6 +1,6 @@
 // Keeps the app opening when the store Wi-Fi drops. App files: network first, cache as fallback.
 // Fonts: cache first. Database calls are never cached.
-const CACHE = 'ricotta-202610061756';
+const CACHE = 'ricotta-202610070503';
 const SHELL = ['./', 'index.html', 'app.js', 'payroll.js', 'config.js', 'vendor/supabase.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
@@ -23,4 +23,19 @@ self.addEventListener('fetch', (e) => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
     return res;
   }).catch(() => caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || caches.match('index.html'))));
+});
+
+// Cake pickup reminders sent by the reminder job.
+self.addEventListener('push', (e) => {
+  let m = {};
+  try { m = e.data ? e.data.json() : {}; } catch { m = { title: 'Cafe Ricotta', body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(m.title || 'Cafe Ricotta', { body: m.body || '', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: m.url || './#orders' } }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || './#orders', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    for (const c of list) if (c.url.startsWith(self.registration.scope)) { c.navigate(url); return c.focus(); }
+    return self.clients.openWindow(url);
+  }));
 });
