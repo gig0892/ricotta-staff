@@ -256,7 +256,7 @@ async function orderSave(id, data, photo) {
   const r = id ? await sb.from('orders').update(data).eq('id', id).select().single() : await sb.from('orders').insert({ ...data, created_by: D.me.id }).select().single();
   if (r.error) throw r.error;
   if (photo != null) {
-    const { error } = await sb.from('order_photos').upsert({ order_id: r.data.id, data: photo });
+    const { error } = photo === '' ? await sb.from('order_photos').delete().eq('order_id', r.data.id) : await sb.from('order_photos').upsert({ order_id: r.data.id, data: photo });
     if (error) throw error;
     await sb.from('orders').update({ has_photo: photo !== '' }).eq('id', r.data.id);
   }
@@ -288,7 +288,8 @@ function blankOrder() {
 }
 // Read the open form back into O.draft so re-renders never lose typing.
 function collectDraft() {
-  if (!O.draft || !$('#o-date')) return;
+  const box = document.querySelector('.editbox[data-okey]');
+  if (!O.draft || !box || box.dataset.okey !== (O.isNew ? 'new' : O.editId)) return;
   const lines = [...document.querySelectorAll('.o-line')].map((row) => ({ name: row.querySelector('select').value, qty: Math.max(1, +row.querySelector('input').value || 1) }));
   Object.assign(O.draft, {
     pickup_date: $('#o-date').value, pickup_time: $('#o-time').value, customer: $('#o-cust').value.trim(), phone: $('#o-phone').value.trim(),
@@ -296,12 +297,13 @@ function collectDraft() {
     loc: $('#o-loc') ? $('#o-loc').value : O.draft.loc,
   });
 }
+const safePhoto = (s) => (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s || '') ? s : '');
 function orderForm(o) {
   const dr = O.draft, act = O.items.filter((i) => i.active);
   const names = [...new Set([...act.map((i) => i.name), ...dr.items.map((i) => i.name).filter(Boolean), t('oOther')])];
-  const photo = dr.photo != null ? dr.photo : (o?.has_photo ? O.photo[o.id] : '');
+  const photo = safePhoto(dr.photo != null ? dr.photo : (o?.has_photo ? O.photo[o.id] : ''));
   const log = o && !inKiosk() ? O.logs[o.id] : null;
-  return `<div class="editbox">
+  return `<div class="editbox" data-okey="${o ? o.id : 'new'}">
     <div class="form">
       <label class="f">${t('oDate')}<input id="o-date" type="date" value="${dr.pickup_date}"></label>
       <label class="f">${t('oTime')}<input id="o-time" type="time" value="${dr.pickup_time}"></label>
@@ -329,7 +331,7 @@ function orderForm(o) {
       : `<div class="inline-actions" style="border-top:1px dashed var(--line);padding-top:12px">
         ${o.status === 'open' ? `<button class="btn" data-act="oStatus" data-id="made">${t('oMade')}</button>` : ''}
         ${OPEN_ST.includes(o.status) ? `<button class="btn primary" data-act="oStatus" data-id="picked">${t('oPicked')}</button><button class="btn ghost" data-act="oAskCancel">${t('oCancel')}</button>` : `<button class="btn" data-act="oStatus" data-id="open">${t('oReopen')}</button>`}</div>`) : ''}
-    ${log ? `<div class="log"><b style="color:var(--ink)">${t('oLog')}</b>${log.map((l) => `<span>${fmtDay(P.local(Date.parse(l.at)).ymd)} ${hmOf(Date.parse(l.at))} · ${esc(logWho(l))} · ${l.action === 'create' ? t('actCreate') : Object.keys(l.new || {}).filter((k) => JSON.stringify(l.old?.[k]) !== JSON.stringify(l.new[k])).map((k) => k === 'status' ? t(l.new[k]) : k === 'paid' ? t(l.new[k]) : k === 'pickup_date' ? `${t('oDate')} ${l.new[k]}` : k === 'items' ? cakeSummary(l.new) : k).join(', ')}</span>`).join('')}</div>` : ''}
+    ${log ? `<div class="log"><b style="color:var(--ink)">${t('oLog')}</b>${log.map((l) => `<span>${fmtDay(P.local(Date.parse(l.at)).ymd)} ${hmOf(Date.parse(l.at))} · ${esc(logWho(l))} · ${l.action === 'create' ? t('actCreate') : Object.keys(l.new || {}).filter((k) => JSON.stringify(l.old?.[k]) !== JSON.stringify(l.new[k])).map((k) => k === 'status' ? t(l.new[k]) : k === 'paid' ? t(l.new[k]) : k === 'pickup_date' ? `${t('oDate')} ${l.new[k]}` : k === 'items' ? esc(cakeSummary(l.new)) : esc(k)).join(', ')}</span>`).join('')}</div>` : ''}
   </div>`;
 }
 function viewOrders() {
@@ -409,6 +411,11 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.p
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const b64u = (s) => { const p = '='.repeat((4 - (s.length % 4)) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, (c) => c.charCodeAt(0)); };
 async function pushCheck() {
+  const before = app.pushOn;
+  await pushCheckInner();
+  return before !== app.pushOn;
+}
+async function pushCheckInner() {
   try {
     const reg = await navigator.serviceWorker?.getRegistration();
     const sub = await reg?.pushManager?.getSubscription();
@@ -467,7 +474,11 @@ async function kioskFlush() {
 
 async function kioskSubmit(action) {
   const s = K.data.staff.find((x) => x.id === K.pick);
-  if (!s) return;
+  if (!s || K.busy) return;
+  K.busy = true;
+  try { await kioskSubmitInner(s, action); } finally { K.busy = false; }
+}
+async function kioskSubmitInner(s, action) {
   const pin = s.has_pin ? K.pin : null;
   const id = uuid();
   const { data, error } = await sb.rpc('kiosk_punch', { p_token: deviceToken(), p_staff: s.id, p_action: action, p_pin: pin, p_at: null, p_client: id });
@@ -504,6 +515,7 @@ function doneTimer() { clearTimeout(doneTimer.h); doneTimer.h = setTimeout(() =>
 
 function renderKiosk() {
   if (app.mode !== 'kiosk') return; // timers from the clock screen must never draw over login/admin
+  collectDraft();
   document.documentElement.lang = prefs.lang;
   const d = K.data;
   const now = new Date();
@@ -647,7 +659,7 @@ async function loadAll(minFrom) {
     if (rq.error) throw rq.error;
     D.requests = rq.data;
     if (!O.draft) await ordersLoad();
-    pushCheck().then(() => { if (app.mode === 'admin' && ui.tab === 'settings') render(); });
+    pushCheck().then((changed) => { if (changed && app.mode === 'admin' && ui.tab === 'settings') render(); });
     if (isOwner()) {
       const [wg, iv, tp] = await Promise.all([
         sb.from('staff_wages').select('*').order('effective'),
@@ -1044,13 +1056,15 @@ function renderNoAccess() {
 }
 
 function render() {
+  collectDraft();
   if (!sb) { $('#root').innerHTML = `<div class="auth"><div class="brand"><b>Cafe Ricotta</b></div><div class="banner">${t('notConfigured')}</div></div>`; return; }
   ({ boot: () => { $('#root').innerHTML = `<div class="auth"><p class="muted">${t('loading')}</p></div>`; }, kiosk: renderKiosk, login: renderLogin, noaccess: renderNoAccess, admin: renderAdmin })[app.mode]();
 }
 
 async function toKiosk() {
   await sb.auth.signOut();
-  D = null; app.mode = 'kiosk'; K.pick = null; K.pin = '';
+  D = null; app.mode = 'kiosk'; K.pick = null; K.pin = ''; K.view = 'clock';
+  Object.assign(O, { orders: [], editId: null, draft: null, isNew: false, photo: {}, logs: {}, confirm: null });
   renderKiosk(); kioskLoad();
 }
 
@@ -1060,7 +1074,7 @@ document.addEventListener('click', async (e) => {
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const act = el.dataset.act, id = el.dataset.id;
-  const go = (tab) => { ui.tab = tab; ui.csv = ''; ui.confirm = null; history.replaceState(null, '', '#' + tab); render(); window.scrollTo(0, 0); };
+  const go = (tab) => { ui.tab = tab; ui.csv = ''; ui.confirm = null; ui.hist = null; history.replaceState(null, '', '#' + tab); render(); window.scrollTo(0, 0); };
 
   // shared
   if (act === 'lang') { prefs.lang = id; savePrefs(); render(); return; }
@@ -1071,12 +1085,13 @@ document.addEventListener('click', async (e) => {
 
   if (act === 'pushEnable') { try { await pushEnable(); } catch (err) { fail(err); } return; }
   if (/^o[A-Z]/.test(act) && (app.mode === 'kiosk' || app.mode === 'admin')) { if (await orderAction(act, el, id)) return; }
-  if (act === 'kView') { K.view = id; O.editId = null; O.isNew = false; O.draft = null; if (id === 'orders') { renderKiosk(); try { await ordersLoad(); } catch (err) { fail(err); } pushCheck().then(() => renderKiosk()); } renderKiosk(); if (id === 'clock') kioskLoad(); return; }
+  if (act === 'kView') { K.view = id; O.editId = null; O.isNew = false; O.draft = null; if (id === 'orders') { renderKiosk(); try { await ordersLoad(); } catch (err) { fail(err); } pushCheck().then((changed) => { if (changed) renderKiosk(); }); } renderKiosk(); if (id === 'clock') kioskLoad(); return; }
   // kiosk
   if (act === 'kPick') { K.pick = K.pick === id ? null : id; K.pin = ''; renderKiosk(); return; }
   if (act === 'kCancel') { if (el.classList.contains('k-sheet') && e.target !== el) return; K.pick = null; K.pin = ''; renderKiosk(); return; }
   if (act === 'kGo') { const s = K.data.staff.find((x) => x.id === K.pick); el.disabled = true; kioskSubmit(s?.open ? 'out' : 'in'); return; }
   if (act === 'kKey') {
+    if (K.busy) return;
     if (id === '<') K.pin = K.pin.slice(0, -1); else if (K.pin.length < 4) K.pin += id;
     renderKiosk();
     if (K.pin.length === 4) { const s = K.data.staff.find((x) => x.id === K.pick); kioskSubmit(s?.open ? 'out' : 'in'); }
@@ -1319,7 +1334,7 @@ document.addEventListener('visibilitychange', () => {
   else if (app.mode === 'admin' && D && !O.draft && !ui.editId && !ui.staffEdit && !ui.newPunch) loadAll();
 });
 window.addEventListener('online', () => { if (app.mode === 'kiosk') kioskLoad(); });
-document.addEventListener('keydown', () => { K.lastTouch = Date.now(); });
+for (const ev of ['keydown', 'input', 'touchstart']) document.addEventListener(ev, () => { K.lastTouch = Date.now(); }, { passive: true });
 
 // ---------- boot ----------
 async function boot() {
