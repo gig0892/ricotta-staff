@@ -1,28 +1,13 @@
 // Pay math (BC Employment Standards). Pure functions: no DOM, no network — tested in tests/payroll.test.mjs.
 // Dates are 'YYYY-MM-DD' strings in store time (America/Vancouver); instants are epoch ms.
 
-export const TZ = 'America/Vancouver';
+import { TZ, TZDATA_VERSION, local, fromLocal } from './store-time.mjs';
+import { cents, payUnits, PAY_DENOMINATOR, settlePay, roundRatio, allocateCents } from './money.mjs';
+export { TZ, TZDATA_VERSION, local, fromLocal };
 export const LOCS = ['langley', 'burnaby'];
 export const OPEN_LIMIT_MS = 18 * 3600e3; // an open shift older than this is a missed clock-out
 
 // ---------- store-time helpers ----------
-const dtf = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-export function local(ms) {
-  const o = {};
-  for (const p of dtf.formatToParts(new Date(ms))) o[p.type] = p.value;
-  return { ymd: `${o.year}-${o.month}-${o.day}`, hm: `${o.hour}:${o.minute}` };
-}
-// Store-local date + 'HH:MM' -> epoch ms.
-export function fromLocal(ymd, hm) {
-  const [y, m, d] = ymd.split('-').map(Number), [H, M] = hm.split(':').map(Number);
-  const want = Date.UTC(y, m - 1, d, H, M);
-  let t = want;
-  for (let i = 0; i < 3; i++) {
-    const l = local(t), [ly, lm, ld] = l.ymd.split('-').map(Number), [lH, lM] = l.hm.split(':').map(Number);
-    t += want - Date.UTC(ly, lm - 1, ld, lH, lM);
-  }
-  return t;
-}
 const utcOf = (s) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
 const ymdOfUtc = (ms) => new Date(ms).toISOString().slice(0, 10);
 export const addDays = (s, n) => ymdOfUtc(utcOf(s) + n * 86400e3);
@@ -45,7 +30,7 @@ export function bcStats(y) {
     [nthMonday(y, 2, 3), '가족의 날', 'Family Day'],
     [addDays(easter(y), -2), '성금요일', 'Good Friday'],
     [addDays(may25, -(((dow(may25) + 6) % 7) || 7)), '빅토리아 데이', 'Victoria Day'],
-    [`${y}-07-01`, '캐나다 데이', 'Canada Day'],
+    [dow(`${y}-07-01`) === 0 ? `${y}-07-02` : `${y}-07-01`, '캐나다 데이', 'Canada Day'],
     [nthMonday(y, 8, 1), 'BC 데이', 'BC Day'],
     [nthMonday(y, 9, 1), '노동절', 'Labour Day'],
     [`${y}-09-30`, '진실과 화해의 날', 'Truth and Reconciliation'],
@@ -98,108 +83,116 @@ export function isMissing(p, nowMs) {
   return p.outMs == null && nowMs - p.inMs > OPEN_LIMIT_MS;
 }
 
-// Split each worked day of one person into regular / 1.5x / 2x / stat hours.
-export function classify(punches, settings) {
-  const o = settings.ot, st = settings.stat, days = {};
-  for (const p of punches) {
-    if (p.inMs == null || p.outMs == null) continue;
-    const d = punchDay(p);
-    (days[d] ||= { date: d, hours: 0, punches: [] });
-    days[d].hours += shiftHours(p, settings);
-    days[d].punches.push(p);
+
+// Weekly accumulation includes the first daily threshold hours of eligible holidays.
+export function classify(punches,settings,holidayEligibility={}) {
+ const o=settings.ot,st=settings.stat,days={};
+ for(const p of punches){
+  if(p.inMs==null||p.outMs==null)continue;
+  const date=punchDay(p);(days[date]||={date,hours:0,punches:[]});days[date].hours+=shiftHours(p,settings);days[date].punches.push(p);
+ }
+ const out={},weekHours={};
+ for(const date of Object.keys(days).sort()){
+  const x=days[date].hours,wk=weekStart(date),before=weekHours[wk]||0;
+  const contribution=o.on?Math.min(x,o.d1):x;
+  const weekly=o.on?Math.min(contribution,Math.max(0,before+contribution-o.w)):0;
+  const state=holidayEligibility[date];
+  const stat=st.on&&statOn(date)&&state!=='no'&&state!=='unknown';
+  const c={...days[date],reg:x,x15:0,x2:0,stat:0,stat2:0,weekly:0,statWeekly:0,pendingStat:!!(st.on&&statOn(date)&&state==='unknown')};
+  if(stat){
+   c.reg=0;c.stat=Math.min(x,o.d2);c.stat2=Math.max(0,x-o.d2);c.statWeekly=weekly;
+  }else if(o.on){
+   c.reg=Math.min(x,o.d1)-weekly;c.weekly=weekly;
+   c.x15=Math.max(0,Math.min(x,o.d2)-o.d1)+weekly;c.x2=Math.max(0,x-o.d2);
   }
-  const out = {}, weekReg = {};
-  for (const d of Object.keys(days).sort()) {
-    const x = days[d].hours;
-    const c = { ...days[d], reg: x, x15: 0, x2: 0, stat: 0, stat2: 0 };
-    if (st.on && statOn(d)) {
-      // Worked a stat: first d2 hours at the stat rate, the rest at the 2x rate. Not counted toward the week.
-      c.reg = 0;
-      c.stat = o.on ? Math.min(x, o.d2) : x;
-      c.stat2 = o.on ? Math.max(0, x - o.d2) : 0;
-    } else if (o.on) {
-      c.reg = Math.min(x, o.d1);
-      c.x15 = Math.max(0, Math.min(x, o.d2) - o.d1);
-      c.x2 = Math.max(0, x - o.d2);
-      const wk = weekStart(d), before = weekReg[wk] || 0, over = Math.max(0, before + c.reg - o.w);
-      if (over > 0) { c.reg -= over; c.x15 += over; }
-      weekReg[wk] = before + c.reg;
-    }
-    out[d] = c;
-  }
-  return out;
+  weekHours[wk]=before+contribution;out[date]=c;
+ }
+ return out;
 }
-
-// Wage on a given day: the latest entry that started on or before it (or the earliest one).
-export function wageOn(wages, staffId, date) {
-  const list = wages.filter((w) => w.staffId === staffId).sort((a, b) => a.effective.localeCompare(b.effective));
-  if (!list.length) return 0;
-  let w = list[0].wage;
-  for (const x of list) if (x.effective <= date) w = x.wage;
-  return +w;
+export function wageOn(wages,staffId,date){
+ const list=wages.filter(w=>w.staffId===staffId&&w.effective<=date).sort((a,b)=>a.effective.localeCompare(b.effective));
+ return list.length?+list.at(-1).wage:0;
 }
-export const dayGross = (c, wage, settings) =>
-  wage * (c.reg + c.x15 * settings.ot.d1x + c.x2 * settings.ot.d2x + c.stat * settings.stat.x + c.stat2 * settings.ot.d2x);
-
-// BC average day's pay for a stat holiday: employed 30 days and worked 15 of the 30 days before it.
-// 'unknown' when the app has not been running long enough to tell.
-export function statAverage({ staff, days, wages, settings, date }) {
-  const from = addDays(date, -30), to = addDays(date, -1);
-  if (staff.startDate && daysBetween(staff.startDate, date) < 30) return { date, status: 'no', amount: 0 };
-  const worked = Object.values(days).filter((c) => c.date >= from && c.date <= to && c.hours > 0);
-  if (worked.length >= 15) {
-    const earned = worked.reduce((a, c) => a + dayGross(c, wageOn(wages, staff.id, c.date), settings), 0);
-    return { date, status: 'yes', amount: earned / worked.length, daysWorked: worked.length };
-  }
-  if (settings.startedAt && settings.startedAt > from) return { date, status: 'unknown', amount: 0, daysWorked: worked.length };
-  return { date, status: 'no', amount: 0, daysWorked: worked.length };
+export function dayPayUnits(c,wage,settings){
+ const o=settings.ot,s=settings.stat,weekly=c.weekly||0,sw=c.statWeekly||0;
+ return payUnits(c.reg,wage)+payUnits(c.x15-weekly,wage,o.d1x)+payUnits(weekly,wage,o.wx)
+  +payUnits(c.x2,wage,o.d2x)+payUnits(c.stat-sw,wage,s.x)+payUnits(sw,wage,Math.max(s.x,o.wx))
+  +payUnits(c.stat2,wage,o.d2x);
 }
-
-// Whole pay period. punches must cover at least 31 days before range.start (stat averages, weekly OT).
-export function payroll({ staff, wages, punches, settings, tips, range, nowMs, locFilter = 'all' }) {
-  const inRange = (d) => d >= range.start && d <= range.end;
-  const byStaff = {};
-  for (const p of punches) (byStaff[p.staffId] ||= []).push(p);
-
-  const tipShare = {};
-  if (settings.tipsOn) for (const loc of LOCS) {
-    const pool = +(tips[`${range.start}|${loc}`] || 0);
-    if (!pool) continue;
-    const hours = {};
-    for (const p of punches) if (p.loc === loc && inRange(punchDay(p))) {
-      const h = shiftHours(p, settings);
-      if (h > 0) hours[p.staffId] = (hours[p.staffId] || 0) + h;
-    }
-    const ids = Object.keys(hours), total = ids.reduce((a, id) => a + hours[id], 0);
-    for (const id of ids) tipShare[id] = (tipShare[id] || 0) + (settings.tipMethod === 'equal' ? pool / ids.length : pool * hours[id] / total);
+export const dayGross=(c,wage,settings)=>Number(dayPayUnits(c,wage,settings))/Number(PAY_DENOMINATOR)/100;
+export function statEligibility(staff,days,settings,date,review){
+ const from=addDays(date,-30),start=staff.start_date||staff.startDate;
+ if(start&&daysBetween(start,date)<30)return 'no';
+ const worked=Object.values(days).filter(c=>c.date>=from&&c.date<date&&c.hours>0).length;
+ if(start&&worked>=15)return 'yes';
+ if(review&&typeof review.qualified==='boolean')return review.qualified?'yes':'no';
+ if(!start||!settings.startedAt||settings.startedAt>from)return 'unknown';
+ if(review?.qualified===true)return 'yes';
+ return 'unknown';
+}
+export function statBasis({staff,days,wages,settings,date}){
+ return JSON.stringify({date,start:staff.start_date||staff.startDate||null,startedAt:settings.startedAt,
+  rules:{ot:settings.ot,stat:settings.stat,brk:settings.brk,rounding:settings.rounding},
+  days:Object.values(days).filter(c=>c.date>=addDays(date,-30)&&c.date<date).sort((a,b)=>a.date.localeCompare(b.date)).map(c=>[c.date,c.hours,c.reg,c.x15,c.x2,c.stat,c.stat2,c.weekly||0]),
+  wages:wages.filter(w=>w.staffId===staff.id&&w.effective<date).map(w=>[w.effective,w.wage]).sort()});
+}
+export function statAverage({staff,days,wages,settings,date,review}){
+ const basis=statBasis({staff,days,wages,settings,date});
+ const valid=review&&review.basis===basis;
+ const qualified=statEligibility(staff,days,settings,date,valid?review:null);
+ if(qualified==='no')return {date,status:'no',qualified,amount:0,basis,daysWorked:0};
+ const worked=Object.values(days).filter(c=>c.date>=addDays(date,-30)&&c.date<date&&c.hours>0);
+ const regularUnits=worked.reduce((n,c)=>n+payUnits(c.reg,wageOn(wages,staff.id,c.date))
+  +payUnits(c.stat,wageOn(wages,staff.id,c.date),settings.stat.x),0n);
+ const estimate=worked.length?roundRatio(regularUnits,PAY_DENOMINATOR*BigInt(worked.length))/100:0;
+ if(valid&&review.qualified===true)return {date,status:'yes',qualified:'yes',amount:review.amount,basis,daysWorked:worked.length,reviewed:true};
+ return {date,status:'unknown',qualified,amount:0,estimate,basis,daysWorked:worked.length};
+}
+export function payroll({staff,wages,punches,settings,tips,range,nowMs,locFilter='all',statReviews=[]}){
+ const inRange=d=>d>=range.start&&d<=range.end,byStaff={};
+ for(const p of punches)(byStaff[p.staffId]||=[]).push(p);
+ const tipShare={},tipIssues=[];
+ if(settings.tipsOn)for(const loc of LOCS){
+  const pool=+(tips[range.start+'|'+loc]||0);if(!pool)continue;
+  const hours={};
+  for(const p of punches)if(p.loc===loc&&inRange(punchDay(p))){
+   const h=shiftHours(p,settings);if(h>0)hours[p.staffId]=(hours[p.staffId]||0)+h;
   }
-
-  const stats = [];
-  for (let d = range.start; d <= range.end; d = addDays(d, 1)) if (statOn(d)) stats.push(d);
-
-  const rows = [];
-  for (const s of staff) {
-    if (locFilter !== 'all' && s.loc !== locFilter && s.loc !== 'both') continue;
-    const mine = byStaff[s.id] || [];
-    const all = classify(mine, settings);
-    const days = Object.values(all).filter((c) => inRange(c.date));
-    const sum = (k) => days.reduce((a, c) => a + c[k], 0);
-    const gross = days.reduce((a, c) => a + dayGross(c, wageOn(wages, s.id, c.date), settings), 0);
-    const statAvg = settings.stat.on && settings.stat.avgDay
-      ? stats.map((date) => ({ ...statAverage({ staff: s, days: all, wages, settings, date }), wage: wageOn(wages, s.id, date) }))
-      : [];
-    const statAvgTotal = statAvg.reduce((a, x) => a + x.amount, 0);
-    const vac = settings.vac?.on ? (gross + statAvgTotal) * settings.vac.pct / 100 : 0;
-    const missing = mine.filter((p) => inRange(punchDay(p)) && isMissing(p, nowMs)).length;
-    const wagesUsed = [...new Set(days.map((c) => wageOn(wages, s.id, c.date)))];
-    const tip = tipShare[s.id] || 0;
-    const hasStatPay = statAvg.some((x) => x.status === 'yes' || (x.status === 'unknown' && x.daysWorked > 0));
-    if (!days.length && !missing && !tip && !hasStatPay) continue;
-    rows.push({
-      staff: s, days, reg: sum('reg'), x15: sum('x15'), x2: sum('x2'), stat: sum('stat'), stat2: sum('stat2'), hours: sum('hours'),
-      wage: wageOn(wages, s.id, range.end), wagesUsed, noWage: !wages.some((w) => w.staffId === s.id),
-      gross, statAvg, statAvgTotal, vac, tips: tip, total: gross + statAvgTotal + vac + tip, missing,
-    });
+  const weights=Object.fromEntries(Object.entries(hours).map(([id,h])=>[id,settings.tipMethod==='equal'?1:h]));
+  if(!Object.keys(weights).length){tipIssues.push('unallocated_tips:'+loc);continue;}
+  for(const [id,amount]of Object.entries(allocateCents(pool,weights)))tipShare[id]=(cents(tipShare[id]||0)+cents(amount))/100;
+ }
+ const stats=[];for(let d=range.start;d<=range.end;d=addDays(d,1))if(statOn(d))stats.push(d);
+ const rows=[];
+ for(const s of staff){
+  if(locFilter!=='all'&&s.loc!==locFilter&&s.loc!=='both')continue;
+  const mine=byStaff[s.id]||[],raw=classify(mine,settings),eligibility={},reviewMap={};
+  for(const date of [...new Set([...Object.keys(raw).filter(d=>statOn(d)),...stats])]){
+   const review=statReviews.find(r=>r.staff_id===s.id&&r.date===date);
+   const basis=statBasis({staff:s,days:raw,wages,settings,date});
+   reviewMap[date]=review?.basis===basis?review:null;
+   eligibility[date]=statEligibility(s,raw,settings,date,reviewMap[date]);
   }
-  return { range, rows, stats };
+  const all=classify(mine,settings,eligibility),days=Object.values(all).filter(c=>inRange(c.date));
+  const sum=k=>days.reduce((n,c)=>n+(c[k]||0),0);
+  const gross=settlePay(days.reduce((n,c)=>n+dayPayUnits(c,wageOn(wages,s.id,c.date),settings),0n))/100;
+  const statAvg=settings.stat.on&&settings.stat.avgDay?stats.map(date=>statAverage({staff:s,days:raw,wages,settings,date,review:reviewMap[date]})):[];
+  const statAvgTotal=statAvg.reduce((n,x)=>n+cents(x.amount),0)/100;
+  const vac=settings.vac?.on?roundRatio(BigInt(cents(gross)+cents(statAvgTotal))*BigInt(Math.round(settings.vac.pct*100)),10000n)/100:0;
+  const missing=mine.filter(p=>inRange(punchDay(p))&&(p.inMs==null||p.outMs==null)).length;
+  const wagesUsed=[...new Set(days.map(c=>wageOn(wages,s.id,c.date)))];
+  const tip=tipShare[s.id]||0,issues=[];
+  if(missing)issues.push('missing_punch');
+  if(days.some(c=>wageOn(wages,s.id,c.date)<=0))issues.push('missing_wage');
+  if(statAvg.some(x=>x.status==='unknown')||days.some(c=>c.pendingStat))issues.push('stat_review');
+  if(mine.some(p=>inRange(punchDay(p))&&p.inMs!=null&&p.outMs!=null&&local(p.inMs).ymd!==local(p.outMs-1).ymd))issues.push('overnight_review');
+  const sorted=mine.filter(p=>p.inMs!=null&&p.outMs!=null).sort((a,b)=>a.inMs-b.inMs);
+  if(sorted.some((p,i)=>i&&p.inMs<sorted[i-1].outMs&&inRange(punchDay(p))))issues.push('overlap');
+  if(!days.length&&!missing&&!tip&&!statAvg.some(x=>x.status!=='no'))continue;
+  rows.push({staff:s,days,reg:sum('reg'),x15:sum('x15'),x2:sum('x2'),weekly:sum('weekly'),statWeekly:sum('statWeekly'),
+   stat:sum('stat'),stat2:sum('stat2'),hours:sum('hours'),wage:wagesUsed.length===1?wagesUsed[0]:wageOn(wages,s.id,range.end),wagesUsed,
+   noWage:issues.includes('missing_wage'),gross,statAvg,statAvgTotal,vac,tips:tip,
+   total:(cents(gross)+cents(statAvgTotal)+cents(vac)+cents(tip))/100,missing,issues});
+ }
+ return {range,rows,stats,issues:tipIssues,ready:!tipIssues.length&&rows.every(r=>!r.issues.length)};
 }

@@ -3,6 +3,8 @@
 //   login  : owner / managers sign in
 //   admin  : today, timesheet, payroll (owner), staff, settings
 import * as P from './payroll.js';
+import { payrollWorkbook } from './payroll-export.mjs';
+import { safeItems, validItems, createKioskQueue, createDurableMutations, createOnlineGate, writeStored, hasUnconfirmedPayrollWrite } from './reliability.mjs';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -62,8 +64,8 @@ const TXT = {
     noteBtn: '시간이 틀렸어요 · 메모 남기기', noteTitle: '정정 요청', notePh2: '예: 실제 출근은 9시였어요', noteSend: '보내기', noteSent: '사장님께 전달했어요.', noteLate: '시간이 지나서 보낼 수 없어요. 사장님께 직접 말해주세요.', noteOffline: '인터넷이 끊겨서 보내지 못했어요. 사장님께 직접 말해주세요.',
     reqTitle: '정정 요청', reqView: '기록 보기', reqDone: '처리 완료', reqDoneOk: '처리 완료로 표시했어요.', reqTag: '정정 요청',
     histTitle: '수정 기록', histD: '근무기록을 누가, 언제, 무엇을, 왜 고쳤는지 전부 보여요. 출퇴근 버튼으로 찍힌 기록은 빼고 보여줘요.', histLoad: '수정 기록 보기', histMore: '더 보기', histNone: '아직 수정한 기록이 없어요.',
-    statSoon: '다가오는 공휴일', statInDays: '{n}일 후', statTodayTag: '오늘', statElig: '공휴일 수당 대상', statSoFar: '지금까지 {n}일 근무 · 15일 필요', statNo: '대상 아님 · {n}일 근무', statNew: '입사 30일 미만', statCheck: '앱 사용 전 기록 필요 — 직접 확인 ({n}일 기록됨)',
-    statRule: 'BC 기준: 입사 30일 이상이고 공휴일 전 30일 중 15일 이상 일한 직원은 공휴일 평균 일당을 받아요. 공휴일에 일하면 그와 별도로 일한 시간은 1.5배예요. 앱이 근무기록으로 날짜를 세서 급여에 자동으로 넣어요.',
+    statSoon: '다가오는 공휴일', statInDays: '{n}일 후', statTodayTag: '오늘', statElig: '공휴일 수당 대상', statSoFar: '지금까지 {n}일 근무 · 15일 필요', statNo: '대상 아님 · {n}일 근무', statNew: '입사 30일 미만', statCheck: '자격·유급 비근무일 확인 필요 ({n}일 기록됨)',
+    statRule: 'BC 기준: 입사 30일 이상이고 공휴일 전 30일 중 15일 이상 일한 직원은 공휴일 평균 일당을 받아요. 공휴일에 일하면 그와 별도로 일한 시간은 1.5배예요. 근무일 외 유급휴가·병가와 공휴일 수당 등 필요한 자료를 확인한 뒤 평균 일당을 확정하세요.',
     missingAlert: '확인이 필요한 기록이 {n}건 있어요 (퇴근 누락 등).', fix: '고치러 가기',
     devicesNow: '매장 기기', lastSeen: '마지막 연결 {t}', never: '아직 연결 안 됨', ago: '{n}분 전', agoH: '{n}시간 전', agoD: '{n}일 전', justNow: '방금',
     cardsTitle: '근무기록', allStaff: '전체 직원', onlyIssues: '확인 필요만', addRecord: '기록 추가', cardsHint: '기록을 누르면 시간을 고칠 수 있어요. 누가 언제 왜 고쳤는지 모두 남아요.',
@@ -75,12 +77,12 @@ const TXT = {
     payTitle: '급여', prev: '이전 기간', next: '다음 기간', thisPeriod: '이번 기간',
     totalHours: '총 근무시간', totalPay: '지급 합계 (세전)', toCheck: '확인 필요', checkNone: '빠진 기록 없음', checkSome: '확인 필요 {n}건 — 아래 표시를 확인하세요',
     reg: '일반', ot15: '초과 1.5배', ot2: '초과 2배', stat: '공휴일 근무', stat2: '공휴일 12h 초과', tips: '팁', wage: '시급', gross: '급여', vac: '휴가수당', statAvg: '공휴일 수당',
-    statYes: '{d} 공휴일 수당 {a}', statUnknown: '{d} 공휴일 수당: 앱 사용 전 기록이 필요해요 — 직접 확인', noWage: '시급 없음', wageChanged: '기간 중 시급 변경',
+    statYes: '{d} 공휴일 수당 {a}', statUnknown: '{d} 공휴일 수당: 자격과 유급 비근무일 등 자료를 확인해 주세요', noWage: '시급 없음', wageChanged: '기간 중 시급 변경',
     noPay: '이 기간에 근무 기록이 없어요.', tapDetail: '직원을 누르면 날짜별 내역이 보여요.',
     tipsTitle: '이 기간 팁 총액', tipsHint: 'Square를 연결하면 자동으로 들어와요. 지금은 지점별 총액을 넣으면 {m} 나눠요.', byHours: '근무시간 비율로', equally: '똑같이',
     copy: '엑셀용 표 복사', copied: '복사했어요. 엑셀에 붙여넣으면 표로 들어가요.', selected: '아래 표를 선택했어요. 복사해서 엑셀에 붙여넣으세요.',
-    csvSum: '요약 CSV 받기', csvDetail: '상세 CSV 받기 (회계사용)', xlsx: '엑셀 파일 받기', xlsxHint: '엑셀에서 시간이나 시급을 고치면 합계가 자동으로 다시 계산돼요.', xlsxBusy: '엑셀 파일 만드는 중…', xlsxDone: '엑셀 파일을 받았어요.',
-    shSum: '급여 요약', shDetail: '근무 상세', period2: '급여 기간', rules2: '배율', dowCol: '요일', total: '합계', wageMixed: '기간 중 시급 변경 — 금액 고정',
+    csvSum: '요약 CSV 받기', csvDetail: '상세 CSV 받기 (회계사용)', xlsx: '엑셀 파일 받기', xlsxHint: '엑셀 Calculation 시트에서 분류된 시간·근무일별 시급을 고치면 합계가 다시 계산됩니다. 근무시간을 바꾸면 초과근무 분류도 확인하세요.', xlsxBusy: '엑셀 파일 만드는 중…', xlsxDone: '엑셀 파일을 받았어요.',
+    shSum: '급여 요약', shDetail: '근무 상세', period2: '급여 기간', rules2: '배율', dowCol: '요일', total: '합계', wageMixed: '근무일별 시급으로 계산',
     backup: '백업', backupD: '직원, 시급 이력, 모든 근무기록, 변경 이력, 팁, 설정을 엑셀 파일 하나로 받아요. 2주에 한 번 받아두면 안전해요.', backupBtn: '전체 백업 받기', backupLast: '마지막 백업: {d}', backupNever: '아직 백업한 적 없음', backupDone: '백업 파일을 받았어요.', backupDue: '백업한 지 2주가 넘었어요. 버튼 한 번이면 돼요.', backupGo: '백업 받기',
     shStaff: '직원', shWages: '시급 이력', shPunches: '근무기록', shLog: '변경 이력', shTips: '팁', shSettings: '설정', colDeleted: '삭제됨', colSource: '입력', colAt: '시각', colWho: '누가', colAction: '내용', colBefore: '이전', colAfter: '이후', colActive: '재직', colStart: '입사일', colId: 'ID', yes: '예', no: '아니요',
     ruleNote: 'BC주 기준: 하루 {d1}시간 넘으면 {x1}배, {d2}시간 넘으면 {x2}배, 주(일–토) {w}시간 넘으면 {wx}배, 공휴일 근무 {sx}배. 세금·CPP·EI 공제 전 금액이에요. 규칙은 설정에서 바꿀 수 있어요.',
@@ -141,8 +143,8 @@ const TXT = {
     noteBtn: 'Time is wrong · leave a note', noteTitle: 'Correction request', notePh2: 'e.g. I actually started at 9', noteSend: 'Send', noteSent: 'Sent to the owner.', noteLate: 'Too late to send. Please tell the owner directly.', noteOffline: 'No internet — not sent. Please tell the owner directly.',
     reqTitle: 'Correction requests', reqView: 'Open record', reqDone: 'Mark done', reqDoneOk: 'Marked as done.', reqTag: 'Correction',
     histTitle: 'Edit history', histD: 'Who changed which time record, when and why. Plain clock-in/out taps are left out.', histLoad: 'Show edit history', histMore: 'Load more', histNone: 'No edits yet.',
-    statSoon: 'Upcoming stat holidays', statInDays: 'in {n} days', statTodayTag: 'today', statElig: 'Gets stat pay', statSoFar: '{n} days so far · needs 15', statNo: 'Not eligible · {n} days', statNew: 'Employed under 30 days', statCheck: 'Needs records from before the app — check manually ({n} days recorded)',
-    statRule: 'BC: staff employed 30+ days who worked 15 of the 30 days before the holiday get an average day’s pay. Hours worked on the holiday are paid 1.5× on top. The app counts the days from the timesheet and adds it to payroll.',
+    statSoon: 'Upcoming stat holidays', statInDays: 'in {n} days', statTodayTag: 'today', statElig: 'Gets stat pay', statSoFar: '{n} days so far · needs 15', statNo: 'Not eligible · {n} days', statNew: 'Employed under 30 days', statCheck: 'Confirm eligibility and paid non-work days ({n} days recorded)',
+    statRule: 'BC: staff employed 30+ days who worked 15 of the 30 days before the holiday get an average day’s pay. Hours worked on the holiday are paid 1.5× on top. Confirm paid leave, sick days and statutory holiday pay before finalizing average day pay.',
     missingAlert: '{n} record(s) need review (missing clock-out etc.).', fix: 'Fix now',
     devicesNow: 'Store devices', lastSeen: 'last seen {t}', never: 'never connected', ago: '{n} min ago', agoH: '{n} h ago', agoD: '{n} d ago', justNow: 'just now',
     cardsTitle: 'Timesheet', allStaff: 'All staff', onlyIssues: 'Needs review only', addRecord: 'Add record', cardsHint: 'Tap a record to correct it. Who changed what, when and why is kept.',
@@ -154,12 +156,12 @@ const TXT = {
     payTitle: 'Payroll', prev: 'Previous period', next: 'Next period', thisPeriod: 'Current period',
     totalHours: 'Total hours', totalPay: 'Total to pay (gross)', toCheck: 'Needs review', checkNone: 'Nothing missing', checkSome: '{n} item(s) need review — see the marks below',
     reg: 'Regular', ot15: 'OT 1.5×', ot2: 'OT 2×', stat: 'Stat worked', stat2: 'Stat over 12h', tips: 'Tips', wage: 'Wage', gross: 'Pay', vac: 'Vacation pay', statAvg: 'Stat pay',
-    statYes: '{d} stat pay {a}', statUnknown: '{d} stat pay: needs records from before the app — check manually', noWage: 'No wage', wageChanged: 'Wage changed in period',
+    statYes: '{d} stat pay {a}', statUnknown: '{d} stat pay: review eligibility and paid non-work records', noWage: 'No wage', wageChanged: 'Wage changed in period',
     noPay: 'No hours in this period.', tapDetail: 'Tap a person to see each day.',
     tipsTitle: 'Tips this period', tipsHint: 'These come in automatically once Square is connected. For now, enter each location’s total and it is split {m}.', byHours: 'by hours worked', equally: 'equally',
     copy: 'Copy for Excel', copied: 'Copied. Paste into Excel to get a table.', selected: 'The table below is selected. Copy it and paste into Excel.',
-    csvSum: 'Download summary CSV', csvDetail: 'Download detail CSV (for accountant)', xlsx: 'Download Excel file', xlsxHint: 'Change hours or wages in Excel and the totals recalculate.', xlsxBusy: 'Building the Excel file…', xlsxDone: 'Excel file downloaded.',
-    shSum: 'Payroll summary', shDetail: 'Shifts', period2: 'Pay period', rules2: 'Rates', dowCol: 'Day', total: 'Total', wageMixed: 'Wage changed in period — amount fixed',
+    csvSum: 'Download summary CSV', csvDetail: 'Download detail CSV (for accountant)', xlsx: 'Download Excel file', xlsxHint: 'Edit classified hours and daily wages on the Calculation sheet to recalculate totals. Recheck overtime classification when hours change.', xlsxBusy: 'Building the Excel file…', xlsxDone: 'Excel file downloaded.',
+    shSum: 'Payroll summary', shDetail: 'Shifts', period2: 'Pay period', rules2: 'Rates', dowCol: 'Day', total: 'Total', wageMixed: 'Calculated with the wage effective on each work date',
     backup: 'Backup', backupD: 'Staff, wage history, every time record, change history, tips and settings in one Excel file. Download one every two weeks to be safe.', backupBtn: 'Download full backup', backupLast: 'Last backup: {d}', backupNever: 'No backup yet', backupDone: 'Backup downloaded.', backupDue: 'Over two weeks since the last backup. One tap.', backupGo: 'Back up now',
     shStaff: 'Staff', shWages: 'Wage history', shPunches: 'Time records', shLog: 'Change history', shTips: 'Tips', shSettings: 'Settings', colDeleted: 'Deleted', colSource: 'Entry', colAt: 'When', colWho: 'Who', colAction: 'Action', colBefore: 'Before', colAfter: 'After', colActive: 'Employed', colStart: 'Start date', colId: 'ID', yes: 'Yes', no: 'No',
     ruleNote: 'BC rules: over {d1} h a day at {x1}×, over {d2} h at {x2}×, over {w} h a week (Sun–Sat) at {wx}×, stat holiday work at {sx}×. Amounts are before tax, CPP and EI. Change rules in Settings.',
@@ -199,17 +201,57 @@ const ago = (ts) => {
   return m < 1 ? t('justNow') : m < 60 ? t('ago', { n: m }) : m < 1440 ? t('agoH', { n: Math.round(m / 60) }) : t('agoD', { n: Math.round(m / 1440) });
 };
 
+Object.assign(TXT.ko, {"conflict":"다른 화면에서 먼저 변경했습니다. 입력을 보관했으니 최신 내용을 확인한 뒤 다시 편집해 주세요.","invalid_items":"케이크 이름과 수량(1~99개)을 확인해 주세요.","storage_write_failed":"기기에 기록을 저장하지 못했습니다. 완료되지 않았으니 관리자에게 알려주세요.","storage_corrupt":"보관된 기록을 읽지 못했습니다. 초기화하지 말고 관리자에게 알려주세요.","pending_review":"이 직원의 미확인 출퇴근 기록이 있습니다. 관리자 확인이 필요합니다.","pending_submission":"미완료 저장이 있습니다. 새로고침해서 기존 요청부터 확인해 주세요.","save_in_progress":"저장 중입니다. 잠시 기다려 주세요.","queuedOnly":"기기에만 보관했습니다","queueReview":"미확인 출퇴근 기록","queueHelp":"완료되지 않은 기록입니다. 삭제하지 말고 관리자에게 확인받으세요.","inviteCode":"초대 코드","inviteCodeHelp":"이 코드를 초대한 사람에게 직접 전달하세요. 7일 뒤 만료되며 한 번만 사용할 수 있습니다.","acceptInvite":"초대 확인","invalid_invite":"초대 코드나 이메일을 확인해 주세요.","needsReview":"확인 필요: 미확인 금액이 있어 확정 내보내기를 할 수 없습니다.","statReviewTitle":"공휴일 자격·평균 일당 확인","qualified":"자격 있음","notQualified":"자격 없음","reviewNote":"확인 근거 (유급휴가·병가 등 포함)","reviewSave":"확인 결과 저장","reviewPick":"자격을 확인해 주세요","affiliationNote":"지점 선택은 소속 직원의 전체 근무 급여입니다. 지점별 파일을 합산하지 마세요.","weekOT":"주간 초과","invalid_time":"날짜와 시간을 확인해 주세요.","nonexistent_local_time":"서머타임 전환으로 존재하지 않는 시각입니다.","ambiguous_local_time":"두 번 존재하는 시각입니다. 원본 UTC 시각을 확인해 주세요."});
+Object.assign(TXT.en, {"conflict":"Another screen changed this record. Your input is kept; review the latest record before editing again.","invalid_items":"Check cake names and quantities (1–99).","storage_write_failed":"Could not save on this device. The entry is not complete; contact a manager.","storage_corrupt":"Stored records cannot be read. Do not reset; contact a manager.","pending_review":"This employee has an unconfirmed clock entry. A manager must review it.","pending_submission":"An earlier save is unconfirmed. Reload to check that request first.","save_in_progress":"Saving. Please wait.","queuedOnly":"Stored on this device only","queueReview":"Unconfirmed clock entries","queueHelp":"These entries are incomplete. Keep them and contact a manager.","inviteCode":"Invitation code","inviteCodeHelp":"Give this code directly to the invited person. Expires in 7 days; works once.","acceptInvite":"Accept invitation","invalid_invite":"Check the invitation code and email.","needsReview":"Unconfirmed amounts prevent final export.","statReviewTitle":"Review holiday eligibility and average pay","qualified":"Eligible","notQualified":"Not eligible","reviewNote":"Review evidence (including paid leave and sick days)","reviewSave":"Save review","reviewPick":"Confirm eligibility","affiliationNote":"Location selects affiliated staff with all their work. Do not add location exports together.","weekOT":"Weekly overtime","invalid_time":"Check the date and time.","nonexistent_local_time":"This wall time does not exist because of a clock change.","ambiguous_local_time":"This wall time occurs twice. Check the original UTC timestamp."});
+TXT.ko.sub += ' · 밴쿠버 시간'; TXT.en.sub += ' · Vancouver time';
 const cfg = window.RICOTTA_CONFIG || {};
+if (cfg.localTest !== false || cfg.url !== 'https://pyxunhxrkeefgaduhibv.supabase.co' || location.origin !== 'https://gig0892.github.io' || !location.pathname.startsWith('/ricotta-staff/')) throw new Error('Production configuration mismatch.');
 const sb = cfg.url && window.supabase ? window.supabase.createClient(cfg.url, cfg.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
 
 const app = { mode: 'boot', authView: 'in', authMsg: '', recovering: false, hasOwner: true, email: '' };
+const settingPaths={"s-ptype":["period","type"],"s-anchor":["period","anchor"],"s-round":["rounding"],"s-brk":["brk","on"],"s-brk-after":["brk","after"],"s-brk-min":["brk","minutes"],"s-ot":["ot","on"],"s-d1":["ot","d1"],"s-d1x":["ot","d1x"],"s-d2":["ot","d2"],"s-d2x":["ot","d2x"],"s-w":["ot","w"],"s-wx":["ot","wx"],"s-stat":["stat","on"],"s-statx":["stat","x"],"s-statavg":["stat","avgDay"],"s-vac":["vac","on"],"s-vacpct":["vac","pct"],"s-tips":["tipsOn"],"s-tipm":["tipMethod"],"r-eve":["remind","eveOn"],"r-eveh":["remind","eveHour"],"r-morn":["remind","mornOn"],"r-mornh":["remind","mornHour"],"r-early":["remind","earlyDays"]};
+let settingWrites=Promise.resolve();
 const ui = { tab: 'today', off: 0, open: {}, editId: null, newPunch: null, staffEdit: null, cardStaff: 'all', onlyIssues: false, csv: '', confirm: null, logs: {}, regOpen: false, busy: false };
 let D = null; // admin data
 const h = location.hash.slice(1);
 if (['today', 'orders', 'cards', 'pay', 'staff', 'settings'].includes(h)) ui.tab = h;
 
 function toast(msg) { const el = $('#toast'); el.textContent = msg; el.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => { el.hidden = true; }, 3200); }
-const fail = (error) => toast(/fetch|network/i.test(error?.message || '') ? t('netFail') : t('saveFail', { m: error?.message || '?' }));
+const fail = (error) => {const m=error?.message||'?';toast(TXT[prefs.lang][m]?t(m):/storage|quota/i.test(m)?t('storage_write_failed'):/fetch|network/i.test(m)?t('netFail'):t('saveFail',{m}));};
+
+Object.assign(TXT.ko,{"overnight_review":"자정을 넘긴 근무입니다. 근무일 배분을 확인해 주세요.","overlap":"서로 겹치는 근무기록이 있습니다.","missing_punch":"출근 또는 퇴근 시각이 빠졌습니다.","missing_wage":"이 근무일의 시급 이력이 없습니다.","stat_review":"공휴일 자격·평균 일당을 확인해 주세요.","future_review":"공휴일이 지난 뒤 실제 기록으로 확인해 주세요.","review_note_required":"확인 근거를 5자 이상 적어 주세요."});
+Object.assign(TXT.en,{"overnight_review":"Overnight shift: review allocation to work days.","overlap":"Some shifts overlap.","missing_punch":"A clock-in or clock-out is missing.","missing_wage":"No wage is recorded for this work date.","stat_review":"Review holiday eligibility and average pay.","future_review":"Review actual records after the holiday.","review_note_required":"Enter at least five characters of review evidence."});
+Object.assign(TXT.ko,{"connection_required":"인터넷 연결을 확인해 주세요. 연결되어야 앱을 사용할 수 있습니다.","connectionRetry":"연결 다시 확인","submitUnknown":"서버 저장 여부를 확인하지 못했습니다. 연결 후 저장 상태를 확인해 주세요.","pending_submission":"저장 결과가 확인되지 않은 요청이 있습니다. 저장 상태를 확인하거나 원래 내용으로 다시 저장하세요.","confirmPending":"저장 상태 확인","retryPending":"원래 내용 다시 저장","queued":"확인할 기록 {n}건","backupBtn":"급여 자료 백업 받기","backupD":"직원·시급·근무기록·변경 이력·팁·설정을 엑셀로 받습니다. 예약·사진·로그인 정보는 포함하지 않으며 앱 전체 복구용 파일은 아닙니다."});
+Object.assign(TXT.en,{"connection_required":"Check your internet connection. A connection is required to use the app.","connectionRetry":"Check connection again","submitUnknown":"Could not confirm the save. Reconnect and check its status.","pending_submission":"A save is unconfirmed. Check its status or explicitly retry the original request.","confirmPending":"Check save status","retryPending":"Retry original save","queued":"{n} entries to confirm","backupBtn":"Download payroll data backup","backupD":"Exports staff, wages, shifts, edit history, tips and settings to Excel. Orders, photos and sign-in data are excluded; this is not a full application restore."});
+TXT.ko.unconfirmed_response=TXT.ko.submitUnknown;TXT.en.unconfirmed_response=TXT.en.submitUnknown;
+const NET={available:true};
+const connectionBox=document.createElement('div');connectionBox.id='connection-status';connectionBox.className='banner';connectionBox.style.cssText='margin:12px auto;max-width:1080px;position:sticky;top:0;z-index:100';connectionBox.hidden=true;
+document.body.insertBefore(connectionBox,$('#root'));
+function setConnection(available){
+ NET.available=available;$('#root').inert=!available;connectionBox.hidden=available;
+ if(!available)connectionBox.innerHTML='<span>'+esc(t('connection_required'))+'</span><button class="btn" id="connection-retry">'+esc(t('connectionRetry'))+'</button>';
+}
+const requireConnection=createOnlineGate({probe:async()=>{
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+ let r;try{r=await sb.rpc('runtime_status').abortSignal(controller.signal);}finally{clearTimeout(timer);}
+ if(r.error)throw Error('connection_required');
+ if(r.data?.schema!==3||r.data.probe!==new Date(P.fromLocal('2026-11-02','09:00')).toISOString().replace('.000',''))throw Error('runtime_update_required');
+ return true;
+},onState:setConnection});
+async function reconnect(){
+ try{
+  await requireConnection();
+  if(app.mode==='boot')await boot();
+  else if(app.mode==='kiosk'){await mutations.recover();await kioskLoad();if(K.view==='orders'){await ordersLoad();render();}}
+  else if(app.mode==='admin'&&D){await mutations.recover();await loadAll();}
+ }catch(error){fail(error);}
+}
+connectionBox.addEventListener('click',e=>{if(e.target.closest('#connection-retry'))reconnect();});
+function pendingSaves(){
+ const list=mutations.pending();if(!list.length)return '';
+ return '<div class="banner"><div><p>'+t('pending_submission')+'</p>'+list.map(x=>'<div>'+t(x.name==='save_order'?'oTitle':x.name==='save_staff'?'tabStaff':'tabCards')+' <button class="btn" data-act="confirmPending">'+t('confirmPending')+'</button> <button class="btn" data-act="retryPending" data-id="'+esc(x.id)+'">'+t('retryPending')+'</button></div>').join('')+'</div></div>';
+}
+const WRITE_ACTIONS=new Set(['saveStatReview','resolveClock','acceptInvite','oSave','oStatus','kNoteSend','reqDone','cakeAdd','cakeToggle','delPunch','saveEdit','clearPin','saveStaff','addWage','regDevice','revoke','invite','delInvite','removeMember','changePw','csv','xlsx','dlSum','dlDetail','backup']);
 
 const I = {
   orders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M5 20v-6h14v6M7 14v-3h10v3M12 11V8"/><path d="M12 5.5c.8 0 1.2-.7 1.2-1.3S12 2.5 12 2.5s-1.2 1.1-1.2 1.7.4 1.3 1.2 1.3z"/></svg>',
@@ -225,49 +267,42 @@ const langSeg = () => `<div class="seg lang" role="group" aria-label="Language">
 // =====================================================================
 // CAKE PRE-ORDERS (same screen on the store iPad and in the admin app)
 // =====================================================================
-const O = { items: [], orders: [], past: false, editId: null, draft: null, isNew: false, photo: {}, logs: {}, confirm: null };
+const O = { items: [], orders: [], soon: [], past: false, editId: null, draft: null, isNew: false, photo: {}, logs: {}, confirm: null };
 const inKiosk = () => app.mode === 'kiosk';
 const OPEN_ST = ['open', 'made'];
-const cakeSummary = (o) => (o.items || []).map((i) => `${i.name}${i.qty > 1 ? ' ×' + i.qty : ''}`).join(', ');
+const cakeSummary=o=>validItems(o.items)?safeItems(o.items).map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join(', '):t('invalid_items');
 const dayLabel = (d) => { const n = P.daysBetween(today(), d); return n === 0 ? t('oToday') : n === 1 ? t('oTomorrow') : n > 1 ? t('oInDays', { n }) : t('oAgo', { n: -n }); };
 
-async function ordersLoad() {
-  const from = O.past ? P.addDays(today(), -120) : P.addDays(today(), -1);
-  const to = O.past ? P.addDays(today(), -1) : P.addDays(today(), 400);
-  if (inKiosk()) {
-    const { data, error } = await sb.rpc('kiosk_orders', { p_token: deviceToken(), p_from: from, p_to: to });
-    if (error) throw error;
-    O.items = data.items; O.orders = data.orders;
-  } else {
-    const [it, od] = await Promise.all([
-      sb.from('cake_items').select('*').order('sort').order('name'),
-      sb.from('orders').select('*').gte('pickup_date', from).lte('pickup_date', to).order('pickup_date').order('pickup_time'),
-    ]);
-    if (it.error) throw it.error;
-    if (od.error) throw od.error;
-    O.items = it.data; O.orders = od.data;
-  }
-  if (O.past) O.orders.reverse();
+async function paged(table,configure=q=>q,keys=['id']) {
+ const out=[];for(let page=0;;page++){
+  let q=configure(sb.from(table).select('*'));for(const key of keys)q=q.order(key);
+  const {data,error}=await q.range(page*1000,page*1000+999);if(error)throw error;
+  out.push(...data);if(data.length<1000)return out;
+ }
 }
-async function orderSave(id, data, photo) {
-  if (inKiosk()) {
-    const { data: row, error } = await sb.rpc('kiosk_order_save', { p_token: deviceToken(), p_id: id, p_data: data, p_photo: photo ?? null });
-    if (error) throw error;
-    return row;
-  }
-  const r = id ? await sb.from('orders').update(data).eq('id', id).select().single() : await sb.from('orders').insert({ ...data, created_by: D.me.id }).select().single();
-  if (r.error) throw r.error;
-  if (photo != null) {
-    const { error } = photo === '' ? await sb.from('order_photos').delete().eq('order_id', r.data.id) : await sb.from('order_photos').upsert({ order_id: r.data.id, data: photo });
-    if (error) throw error;
-    await sb.from('orders').update({ has_photo: photo !== '' }).eq('id', r.data.id);
-  }
-  return r.data;
+async function ordersLoad() {
+ const from=O.past?P.addDays(today(),-120):P.addDays(today(),-1),to=O.past?P.addDays(today(),-1):P.addDays(today(),400);
+ if(inKiosk()){
+  const {data,error}=await sb.rpc('kiosk_orders',{p_token:deviceToken(),p_from:from,p_to:to});if(error)throw error;
+  O.items=data.items;O.orders=data.orders;
+ }else{
+  [O.items,O.orders,O.soon]=await Promise.all([
+   paged('cake_items',q=>q,['sort','name','id']),
+   paged('orders',q=>q.gte('pickup_date',from).lte('pickup_date',to),['pickup_date','pickup_time','id']),
+   paged('orders',q=>q.gte('pickup_date',today()).lte('pickup_date',P.addDays(today(),1)),['pickup_date','pickup_time','id'])
+  ]);
+ }
+ if(O.past)O.orders.reverse();
+}
+const mutations=createDurableMutations({storage:localStorage,rpc:(name,args)=>sb.rpc(name,args),ensureOnline:()=>requireConnection(),lookup:(name,args)=>sb.rpc('mutation_result',{p_kind:name.replace('save_',''),p_request:args.p_request,p_token:args.p_token??null}),actor:()=>D?.me?.id||deviceToken()||'none'});
+async function orderSave(id,data,photo,version) {
+ return mutations.call('save_order',{p_id:id,p_data:data,p_photo:photo??null,p_version:version??null,p_token:inKiosk()?deviceToken():null},'order:'+(id||'new'));
 }
 async function orderPhoto(id) {
-  if (O.photo[id] !== undefined) return;
-  if (inKiosk()) { const { data } = await sb.rpc('kiosk_order_photo', { p_token: deviceToken(), p_id: id }); O.photo[id] = data || ''; }
-  else { const { data } = await sb.from('order_photos').select('data').eq('order_id', id).maybeSingle(); O.photo[id] = data?.data || ''; }
+ if(O.photo[id]!==undefined)return;
+ const r=inKiosk()?await sb.rpc('kiosk_order_photo',{p_token:deviceToken(),p_id:id}):await sb.from('order_photos').select('data').eq('order_id',id).maybeSingle();
+ if(r.error)throw r.error;
+ O.photo[id]=inKiosk()?(r.data||''):(r.data?.data||'');
 }
 function resizeImage(file) {
   return new Promise((ok, no) => {
@@ -314,7 +349,7 @@ function orderForm(o) {
     </div>
     <div class="set-group" style="gap:8px"><b style="font-size:13px;color:var(--muted)">${t('oCakes')}</b>
       ${dr.items.map((it, i) => `<div class="o-line inline-actions"><select class="sel" aria-label="${t('oCakes')}">${names.map((n) => `<option ${n === it.name ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
-        <input class="sel" type="number" inputmode="numeric" min="1" max="99" value="${it.qty}" aria-label="${t('oQty')}" style="width:72px">
+        <input class="sel" type="number" inputmode="numeric" min="1" max="99" value="${esc(String(it.qty))}" aria-label="${t('oQty')}" style="width:72px">
         ${dr.items.length > 1 ? `<button class="btn ghost" data-act="oDelLine" data-id="${i}" aria-label="${t('del')}">✕</button>` : ''}</div>`).join('')}
       <div><button class="btn" data-act="oAddLine">${t('oAddLine')}</button></div></div>
     <label class="f">${t('oNote')}<textarea id="o-note" class="sel" rows="3" maxlength="500" placeholder="${t('oNotePh')}" style="font:inherit;font-size:16px">${esc(dr.note)}</textarea></label>
@@ -357,7 +392,7 @@ function viewOrders() {
     : (O.isNew ? '' : `<div class="card empty"><h3>${t('oNone')}</h3><p class="note">${t('oNoneD')}</p></div>`)}`;
 }
 // Today / tomorrow pickups (open or made), for banners.
-const soonOrders = () => { const td = today(), tm = P.addDays(td, 1); const os = O.orders.filter((o) => OPEN_ST.includes(o.status) && (inKiosk() || inLoc(o.loc))); return { today: os.filter((o) => o.pickup_date === td), tomorrow: os.filter((o) => o.pickup_date === tm) }; };
+const soonOrders = () => { const td = today(), tm = P.addDays(td, 1); const os = (inKiosk()?O.orders:O.soon).filter((o) => OPEN_ST.includes(o.status) && (inKiosk() || inLoc(o.loc))); return { today: os.filter((o) => o.pickup_date === td), tomorrow: os.filter((o) => o.pickup_date === tm) }; };
 
 async function orderAction(act, el, id) {
   if (act === 'oRange') { O.past = id === 'past'; O.editId = null; O.isNew = false; O.draft = null; await ordersLoad().catch(fail); render(); return true; }
@@ -366,15 +401,15 @@ async function orderAction(act, el, id) {
     if (O.editId === id) { O.editId = null; O.draft = null; render(); return true; }
     const o = O.orders.find((x) => x.id === id);
     O.editId = id; O.isNew = false; O.confirm = null;
-    O.draft = { pickup_date: o.pickup_date, pickup_time: o.pickup_time, customer: o.customer, phone: o.phone, items: (o.items || []).map((i) => ({ ...i })), note: o.note, paid: o.paid, taken_by: o.taken_by, loc: o.loc, photo: null };
+    O.draft = { pickup_date: o.pickup_date, pickup_time: o.pickup_time, customer: o.customer, phone: o.phone, items: safeItems(o.items), note: o.note, paid: o.paid, taken_by: o.taken_by, loc: o.loc, photo: null };
     if (!O.draft.items.length) O.draft.items = [{ name: O.items[0]?.name || '', qty: 1 }];
     render();
     if (!inKiosk() && !O.logs[id]) { const { data } = await sb.from('order_log').select('*').eq('order_id', id).order('id'); O.logs[id] = data || []; render(); }
     return true;
   }
   if (act === 'oClose') { O.editId = null; O.isNew = false; O.draft = null; render(); return true; }
-  if (act === 'oAddLine') { collectDraft(); O.draft.items.push({ name: O.items.find((i) => i.active)?.name || '', qty: 1 }); render(); return true; }
-  if (act === 'oDelLine') { collectDraft(); O.draft.items.splice(+id, 1); render(); return true; }
+  if (act === 'oAddLine') { collectDraft(); O.draft.items.push({ name: O.items.find((i) => i.active)?.name || '', qty: 1 }); render(false); return true; }
+  if (act === 'oDelLine') { collectDraft(); O.draft.items.splice(+id, 1); render(false); return true; }
   if (act === 'oPhotoView') { collectDraft(); await orderPhoto(O.editId); render(); return true; }
   if (act === 'oPhotoDel') { collectDraft(); O.draft.photo = ''; render(); return true; }
   if (act === 'oAskCancel') { collectDraft(); O.confirm = 'cancel'; render(); return true; }
@@ -383,14 +418,15 @@ async function orderAction(act, el, id) {
     collectDraft();
     const dr = O.draft;
     dr.items = dr.items.filter((i) => i.name);
-    if (!dr.pickup_date || !dr.items.length) { toast(t('oNeed')); if (!dr.items.length) dr.items.push({ name: '', qty: 1 }); return true; }
+    if (!dr.pickup_date || !validItems(dr.items)) { toast(t('oNeed')); if (!dr.items.length) dr.items.push({ name: '', qty: 1 }); return true; }
     const data = { pickup_date: dr.pickup_date, pickup_time: dr.pickup_time, customer: dr.customer, phone: dr.phone, items: dr.items, note: dr.note, paid: dr.paid, taken_by: dr.taken_by };
     if (!inKiosk()) data.loc = dr.loc;
     if (act === 'oStatus') data.status = id;
     el.disabled = true;
     try {
-      const row = await orderSave(O.isNew ? null : O.editId, data, dr.photo);
-      if (dr.photo != null) O.photo[row.id] = dr.photo;
+      const existing=O.orders.find(o=>o.id===O.editId);
+      const row=await orderSave(O.isNew?null:O.editId,act==='oStatus'?{status:id}:data,act==='oStatus'?null:dr.photo,existing?.version);
+      if (act === 'oSave' && dr.photo != null) O.photo[row.id] = dr.photo;
       delete O.logs[row.id];
       O.editId = null; O.isNew = false; O.draft = null; O.confirm = null;
       await ordersLoad();
@@ -427,6 +463,7 @@ async function pushCheckInner() {
   } catch { app.pushOn = false; }
 }
 async function pushEnable() {
+  if (cfg.localTest) { toast(prefs.lang === 'ko' ? '테스트 환경에서는 실제 알림을 보내지 않습니다.' : 'Real notifications are disabled in this test environment.'); return; }
   if (isIOS() && !isStandalone()) { toast(t('pushNeedHome')); return; }
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || !cfg.vapidPublicKey) { toast(t('pushUnsupported')); return; }
   const perm = await Notification.requestPermission();
@@ -471,9 +508,10 @@ const pushCard = () => `<div class="card pad set-group"><h3>${t('push')}</h3><p 
 // =====================================================================
 const K = { view: 'clock', soon: null, data: store.get(K_CACHE, null), online: true, pick: null, pin: '', shake: false, done: null, lastTouch: Date.now() };
 const deviceToken = () => store.get(K_DEVICE, null);
-const queue = () => store.get(K_QUEUE, []);
+const queue = () => kioskQueue.read();
 
 async function kioskLoad() {
+  if(!NET.available){K.online=false;return;}
   await kioskFlush();
   const { data, error } = await sb.rpc('kiosk_state', { p_token: deviceToken() });
   if (error) {
@@ -487,67 +525,39 @@ async function kioskLoad() {
   if (app.mode === 'kiosk' && !K.noting && K.view === 'clock') renderKiosk();
 }
 
-async function kioskFlush() {
-  let q = queue();
-  while (q.length) {
-    const item = q[0];
-    const { error } = await sb.rpc('kiosk_punch', { p_token: deviceToken(), p_staff: item.staff, p_action: item.action, p_pin: item.pin, p_at: item.at, p_client: item.id });
-    if (error && /fetch|network|Failed/i.test(error.message)) { K.online = false; return; }
-    q = queue().filter((x) => x.id !== item.id);
-    store.set(K_QUEUE, q);
+const kioskQueue=createKioskQueue({storage:localStorage,lookup:item=>sb.rpc('kiosk_result',{p_token:deviceToken(),p_client:item.id}),reviewStatus:async()=>{const {data,error}=await sb.rpc('kiosk_review_status',{p_token:deviceToken()});return error?[]:data;},send:item=>sb.rpc('kiosk_punch',{p_token:deviceToken(),p_staff:item.staff,p_action:item.action,p_pin:item.pin,p_at:item.offline===false?null:item.at,p_client:item.id})});
+async function kioskFlush(options){const result=await kioskQueue.flush(options);K.online=result.online;return result;}
+async function kioskSubmit(action){
+ const staff=K.data.staff.find(s=>s.id===K.pick);if(!staff||K.busy)return;
+ K.busy=true;
+ try{
+  await requireConnection();
+  const previous=await kioskFlush();if(!previous.online)throw new Error('connection_required');
+  const id=uuid(),at=new Date().toISOString(),pin=staff.has_pin?K.pin:null;K.pin='';
+  kioskQueue.enqueue({id,staff:staff.id,action,pin,at,offline:false,onlineOnly:true});
+  const flushed=await kioskFlush({submit:id}),saved=flushed.replies[id],pending=kioskQueue.read().find(x=>x.id===id);
+  if(saved?.rejected){K.pick=null;renderKiosk();toast(saved.result==='bad_pin'?t('wrongPin'):saved.result==='pin_locked'?t('pinLocked'):t('saveFail',{m:saved.result}));return;}
+  if(pending?.status==='review'){K.pick=null;renderKiosk();toast(t('pending_review'));return;}
+  if(saved){
+   K.done={name:staff.name,action,time:hmOf(Date.parse(action==='in'?saved.in:saved.out)),client:id};
+   K.pick=null;await kioskLoad();renderKiosk();doneTimer();
+  }else{
+   K.done=null;K.pick=null;renderKiosk();toast(t('submitUnknown'));
   }
+ }catch(error){K.pick=null;renderKiosk();fail(error);}finally{K.busy=false;}
 }
 
-async function kioskSubmit(action) {
-  const s = K.data.staff.find((x) => x.id === K.pick);
-  if (!s || K.busy) return;
-  K.busy = true;
-  try { await kioskSubmitInner(s, action); } finally { K.busy = false; }
-}
-async function kioskSubmitInner(s, action) {
-  const pin = s.has_pin ? K.pin : null;
-  const id = uuid();
-  const { data, error } = await sb.rpc('kiosk_punch', { p_token: deviceToken(), p_staff: s.id, p_action: action, p_pin: pin, p_at: null, p_client: id });
-  K.pin = '';
-  if (error) {
-    if (/pin_locked/.test(error.message)) { K.pick = null; renderKiosk(); toast(t('pinLocked')); return; }
-    if (/bad_device/.test(error.message)) { kioskLoad(); return; }
-    if (/fetch|network|Failed/i.test(error.message)) {
-      // Offline: keep the tap on this iPad and show it as done.
-      const at = new Date().toISOString();
-      store.set(K_QUEUE, [...queue(), { id, staff: s.id, action, pin, at }]);
-      K.online = false;
-      s.open = action === 'in' ? at : null;
-      K.data.today.push({ staff_id: s.id, name: s.name, in: action === 'in' ? at : null, out: action === 'out' ? at : null });
-      store.set(K_CACHE, K.data);
-      K.done = { name: s.name, action, time: hmOf(Date.now()), note: t('savedOffline') };
-      K.pick = null; renderKiosk(); doneTimer();
-      return;
-    }
-    toast(t('saveFail', { m: error.message })); K.pick = null; renderKiosk(); return;
-  }
-  if (data.result === 'bad_pin') { K.shake = true; renderKiosk(); K.shake = false; toast(t('wrongPin')); return; }
-  const inMs = data.in ? Date.parse(data.in) : null, outMs = data.out ? Date.parse(data.out) : null;
-  const client = id;
-  if (data.result === 'already_in') K.done = { name: s.name, action: 'in', time: hmOf(inMs), note: t('already', { t: hmOf(inMs) }) };
-  else if (data.result === 'out_without_in') K.done = { name: s.name, action: 'out', time: hmOf(outMs), note: t('outNoIn') };
-  else if (data.result === 'out') K.done = { name: s.name, action: 'out', time: hmOf(outMs), note: t('doneHours', { h: hrs((outMs - inMs) / 3600e3) }) };
-  else K.done = { name: s.name, action: 'in', time: hmOf(inMs), note: '' };
-  K.done.client = client;
-  K.pick = null; renderKiosk(); doneTimer();
-  kioskLoad();
-}
 function doneTimer() { clearTimeout(doneTimer.h); doneTimer.h = setTimeout(() => { K.done = null; renderKiosk(); }, 3500); }
 
-function renderKiosk() {
+function renderKiosk(collect=true) {
   if (app.mode !== 'kiosk') return; // timers from the clock screen must never draw over login/admin
-  collectDraft();
+  if(collect)collectDraft();
   document.documentElement.lang = prefs.lang;
   const d = K.data;
   const now = new Date();
   if (!d) { $('#root').innerHTML = `<div class="auth"><p class="muted">${t('loading')}</p></div>`; return; }
   const pick = d.staff.find((s) => s.id === K.pick);
-  const q = queue().length;
+  const queued=queue(),q=queued.length,blocked=queued.filter(x=>x.status==='review');
   const working = d.staff.filter((s) => s.open);
   $('#root').innerHTML = `
     <header class="k-top">
@@ -556,8 +566,10 @@ function renderKiosk() {
       <span class="k-clock" id="kClock">${hmOf(now.getTime())}</span>
       ${langSeg()}
     </header>
+    ${pendingSaves()}
     ${K.view === 'orders' ? `<main class="k-main">${viewOrders()}${pushCard()}<div class="k-foot"><span></span><button class="btn ghost" data-act="kAdmin">${t('admin')}</button></div></main>` : `<main class="k-main">
-      ${K.soon && (K.soon.today || K.soon.tomorrow) ? `<div class="banner"><span>🎂 ${[K.soon.today ? t('oSoonToday', { n: K.soon.today }) : '', K.soon.tomorrow ? t('oSoonTomorrow', { n: K.soon.tomorrow }) : ''].filter(Boolean).join(' · ')}</span><button class="btn" data-act="kView" data-id="orders">${t('oView')}</button></div>` : ''}
+      ${blocked.length?`<div class="banner"><div><b>${t('queueReview')}</b><p>${t('queueHelp')}</p>${blocked.map(x=>`<div>${esc(d.staff.find(s=>s.id===x.staff)?.name||x.staff)} · ${esc(P.local(Date.parse(x.at)).ymd)} ${esc(P.local(Date.parse(x.at)).hm)} · ${esc(x.action)} · ${esc(x.reason)}</div>`).join('')}</div></div>`:''}
+    ${K.soon && (K.soon.today || K.soon.tomorrow) ? `<div class="banner"><span>🎂 ${[K.soon.today ? t('oSoonToday', { n: K.soon.today }) : '', K.soon.tomorrow ? t('oSoonTomorrow', { n: K.soon.tomorrow }) : ''].filter(Boolean).join(' · ')}</span><button class="btn" data-act="kView" data-id="orders">${t('oView')}</button></div>` : ''}
       ${d.staff.length ? `
       <div class="head"><h2>${t('tapName')}</h2></div>
       <div class="k-names">${d.staff.map((s) => `<button class="k-name ${s.open ? 'in' : ''}" data-act="kPick" data-id="${s.id}" aria-pressed="${K.pick === s.id}">${av(s.name)}<span>${esc(s.name)}</span><span class="st">${s.open ? t('since', { t: hmOf(Date.parse(s.open)) }) : t('off')}</span></button>`).join('')}</div>
@@ -583,7 +595,7 @@ function renderKiosk() {
          <button class="btn ghost" data-act="kCancel">${t('cancel')}</button>`}
     </div></div>` : ''}
     ${K.done && K.noting ? `<div class="done"><div class="k-note"><div class="big" style="font-size:30px">${esc(K.done.name)} · ${t('noteTitle')}</div><textarea id="kNoteText" maxlength="300" placeholder="${t('notePh2')}"></textarea><div class="inline-actions" style="justify-content:center"><button class="btn primary" data-act="kNoteSend" style="background:var(--on-strong);color:var(--strong)">${t('noteSend')}</button><button class="btn" data-act="kNoteCancel">${t('cancel')}</button></div></div></div>` : ''}
-    ${K.done && !K.noting ? `<div class="done" data-act="kDone"><div><div class="big">${esc(K.done.name)}<br>${K.done.action === 'in' ? t('doneIn') : t('doneOut')}</div><div class="t">${K.done.time}</div>${K.done.note ? `<p>${esc(K.done.note)}</p>` : ''}${K.done.client ? `<button class="btn" data-act="kNote" style="margin-top:22px">${t('noteBtn')}</button>` : ''}<p>${t('tapToClose')}</p></div></div>` : ''}`;
+    ${K.done && !K.noting ? `<div class="done" data-act="kDone"><div><div class="big">${esc(K.done.name)}<br>${K.done.pending?t('queuedOnly'):K.done.action==='in'?t('doneIn'):t('doneOut')}</div><div class="t">${K.done.time}</div>${K.done.note ? `<p>${esc(K.done.note)}</p>` : ''}${K.done.client ? `<button class="btn" data-act="kNote" style="margin-top:22px">${t('noteBtn')}</button>` : ''}<p>${t('tapToClose')}</p></div></div>` : ''}`;
 }
 
 // =====================================================================
@@ -616,6 +628,7 @@ async function onAuthSubmit(form) {
   app.email = email; ui.busy = true; app.authMsg = '';
   const redirectTo = location.origin + location.pathname;
   try {
+    await requireConnection();
     if (form.dataset.form === 'in') {
       const { error } = await sb.auth.signInWithPassword({ email, password: pw });
       if (error) { app.authMsg = /confirm/i.test(error.message) ? t('checkMail') : t('authFail'); return; }
@@ -637,7 +650,7 @@ async function onAuthSubmit(form) {
       app.recovering = false; toast(t('pwChanged'));
       await enterAdmin();
     }
-  } catch (e) { app.authMsg = t('netFail'); }
+  } catch (e) { console.error('auth_flow', e); app.authMsg = e.message || t('netFail'); fail(e); }
   finally { ui.busy = false; if (app.mode === 'login') renderLogin(); }
 }
 
@@ -645,7 +658,7 @@ async function onAuthSubmit(form) {
 // ADMIN
 // =====================================================================
 const isOwner = () => D?.role === 'owner';
-const normPunch = (r) => ({ id: r.id, staffId: r.staff_id, loc: r.loc, inMs: r.clock_in ? Date.parse(r.clock_in) : null, outMs: r.clock_out ? Date.parse(r.clock_out) : null, source: r.source, offline: !!r.offline, note: r.note || '', updated: r.updated_at, created: r.created_at });
+const normPunch = (r) => ({ id: r.id, version: r.version, staffId: r.staff_id, loc: r.loc, inMs: r.clock_in ? Date.parse(r.clock_in) : null, outMs: r.clock_out ? Date.parse(r.clock_out) : null, source: r.source, offline: !!r.offline, note: r.note || '', updated: r.updated_at, created: r.created_at });
 const staffById = (id) => D.staff.find((s) => s.id === id);
 const inLoc = (loc) => prefs.loc === 'all' || loc === prefs.loc || loc === 'both';
 const statName = (st) => (prefs.lang === 'ko' ? st.ko : st.en);
@@ -657,6 +670,8 @@ async function enterAdmin() {
   if (!role) { app.mode = 'noaccess'; app.email = user?.email || ''; render(); return; }
   D = { role, me: user, requests: [], staff: [], wages: [], punches: [], loadedFrom: null, devices: [], members: [], invites: [], tips: {}, settings: null };
   app.mode = 'admin';
+  try { await mutations.recover(); } catch(error) { fail(error); }
+  if(deviceToken())try{await kioskFlush();}catch(error){fail(error);}
   K.lastTouch = Date.now();
   await loadAll();
 }
@@ -664,7 +679,7 @@ async function enterAdmin() {
 async function fetchAllPunches(from) {
   const out = [];
   for (let page = 0; ; page++) {
-    const { data, error } = await sb.from('punches').select('*').eq('deleted', false).gte('ts', iso(P.fromLocal(from, '00:00'))).order('ts').range(page * 1000, page * 1000 + 999);
+    const { data, error } = await sb.from('punches').select('*').eq('deleted', false).gte('ts', iso(P.fromLocal(from, '00:00'))).order('ts').order('id').range(page * 1000, page * 1000 + 999);
     if (error) throw error;
     out.push(...data);
     if (data.length < 1000) return out;
@@ -672,44 +687,48 @@ async function fetchAllPunches(from) {
 }
 
 async function loadAll(minFrom) {
-  try {
-    const [st, se, dv, mb] = await Promise.all([
-      sb.from('staff').select('*').order('sort').order('name'),
-      sb.from('settings').select('data').eq('id', 1).single(),
-      sb.from('devices').select('id,name,loc,revoked,last_seen,created_at').order('created_at'),
-      sb.from('members').select('*').order('created_at'),
-    ]);
-    for (const r of [st, se, dv, mb]) if (r.error) throw r.error;
-    D.staff = st.data; D.settings = se.data.data; D.devices = dv.data; D.members = mb.data;
-    const rq = await sb.from('requests').select('*').eq('resolved', false).order('created_at');
-    if (rq.error) throw rq.error;
-    D.requests = rq.data;
-    if (!O.draft) await ordersLoad();
-    pushCheck().then((changed) => { if (changed && app.mode === 'admin' && ui.tab === 'settings') render(); });
-    if (isOwner()) {
-      const [wg, iv, tp] = await Promise.all([
-        sb.from('staff_wages').select('*').order('effective'),
-        sb.from('invites').select('*').order('created_at'),
-        sb.from('tips').select('*'),
-      ]);
-      for (const r of [wg, iv, tp]) if (r.error) throw r.error;
-      D.wages = wg.data.map((w) => ({ id: w.id, staffId: w.staff_id, wage: +w.wage, effective: w.effective }));
-      D.invites = iv.data;
-      D.tips = Object.fromEntries(tp.data.map((x) => [`${x.period_start}|${x.loc}`, +x.amount]));
-    }
-    const want = P.addDays(P.periodRange(D.settings, Math.min(ui.off, -1), today()).start, -45);
-    const from = [minFrom, want, D.loadedFrom].filter(Boolean).sort()[0];
-    D.punches = (await fetchAllPunches(from)).map(normPunch);
-    D.loadedFrom = from;
-  } catch (e) { fail(e); }
-  render();
+ try {
+  const localReviews=[];
+  for(const x of queue()){
+   const r=await sb.rpc('import_clock_review',{p_client:x.id,p_staff:x.staff,p_action:x.action,p_at:x.at,p_reason:x.reason||'unconfirmed_local_record'});
+   if(r.error)throw r.error;localReviews.push(r.data);
+  }
+  if(localReviews.length)kioskQueue.acknowledgeReviews(localReviews);
+  const [staff,settings,devices,members,requests]=await Promise.all([
+   paged('staff',q=>q,['sort','name','id']),sb.from('settings').select('data').eq('id',1).single(),
+   paged('devices',q=>q,['created_at','id']),paged('members',q=>q,['user_id']),
+   paged('requests',q=>q.eq('resolved',false),['created_at','id'])
+  ]);
+  if(settings.error)throw settings.error;
+  D.staff=staff;D.settings=settings.data.data;D.devices=devices;D.members=members;D.requests=requests;
+  if(!O.draft)await ordersLoad();
+  if(isOwner()){
+   const [wages,invites,tips,reviews]=await Promise.all([
+    paged('staff_wages',q=>q,['effective','id']),paged('invites',q=>q,['created_at','email']),
+    paged('tips',q=>q,['period_start','loc']),paged('payroll_stat_reviews',q=>q,['date','staff_id'])
+   ]);
+   D.wages=wages.map(w=>({id:w.id,staffId:w.staff_id,wage:+w.wage,effective:w.effective}));
+   D.invites=invites;D.tips=Object.fromEntries(tips.map(x=>[x.period_start+'|'+x.loc,+x.amount]));
+   D.statReviews=reviews.map(x=>({...x,amount:+x.amount}));
+  }
+  const want=P.addDays(P.periodRange(D.settings,Math.min(ui.off,-1),today()).start,-45);
+  const from=[minFrom,want,D.loadedFrom].filter(Boolean).sort()[0];
+  if(isOwner()){
+   const snap=await sb.rpc('payroll_snapshot',{p_from:from});if(snap.error)throw snap.error;
+   D.staff=snap.data.staff;D.settings=snap.data.settings;D.punches=snap.data.punches.map(normPunch);
+   D.wages=snap.data.wages.map(w=>({id:w.id,staffId:w.staff_id,wage:+w.wage,effective:w.effective}));
+   D.tips=Object.fromEntries(snap.data.tips.map(x=>[x.period_start+'|'+x.loc,+x.amount]));D.statReviews=snap.data.reviews.map(x=>({...x,amount:+x.amount}));
+  }else D.punches=(await fetchAllPunches(from)).map(normPunch);
+  D.clockReviews=await paged('clock_reviews',q=>q.eq('resolved',false),['at','client_id']);D.loadedFrom=from;D.loadError=false;
+ }catch(error){D.loadError=true;fail(error);}
+ render();
 }
 
 function guide() {
   const hasStaff = D.staff.length > 0, hasDev = D.devices.some((d) => !d.revoked);
   return `<div class="cap">${t('guideTitle')}</div><div class="steps">
-    <div class="card step click ${hasStaff ? 'done' : ''}" data-act="guideStaff" role="button" tabindex="0"><span class="n">1</span><b>${t('g1')}</b><span class="note">${t('g1d')}</span></div>
-    <div class="card step click ${hasDev ? 'done' : ''}" data-act="guideDevice" role="button" tabindex="0"><span class="n">2</span><b>${t('g2')}</b><span class="note">${t('g2d')}</span></div>
+    <div class="card step click ${hasStaff ? 'complete' : ''}" data-act="guideStaff" role="button" tabindex="0"><span class="n">1</span><b>${t('g1')}</b><span class="note">${t('g1d')}</span></div>
+    <div class="card step click ${hasDev ? 'complete' : ''}" data-act="guideDevice" role="button" tabindex="0"><span class="n">2</span><b>${t('g2')}</b><span class="note">${t('g2d')}</span></div>
     <div class="card step"><span class="n">3</span><b>${t('g3')}</b><span class="note">${t('g3d')}</span></div></div>`;
 }
 
@@ -781,21 +800,22 @@ function logLine(l, withStaff) {
 }
 
 function editForm(p, isNew) {
-  const date = isNew ? today() : P.punchDay(p);
+  const draft=ui.punchDraft?.key===(isNew?'new':p.id)?ui.punchDraft:null;
+  const date = draft?.date || (isNew ? today() : P.punchDay(p));
   const staffOpts = D.staff.filter((s) => s.active || s.id === p.staffId);
   const log = ui.logs[p.id];
   const reqs = isNew ? [] : D.requests.filter((r) => r.punch_id === p.id);
   return `<div class="editbox" data-punch="${isNew ? 'new' : p.id}">
     ${reqs.map((r) => `<div class="banner"><span><span class="pill alert">${t('reqTag')}</span> “${esc(r.message)}”</span><button class="btn" data-act="reqDone" data-id="${r.id}">${t('reqDone')}</button></div>`).join('')}
     <div class="form">
-      <label class="f">${t('staff')}<select id="e-staff">${staffOpts.map((s) => `<option value="${s.id}" ${p.staffId === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>
-      <label class="f">${t('loc')}<select id="e-loc">${P.LOCS.map((l) => `<option value="${l}" ${p.loc === l ? 'selected' : ''}>${t(l)}</option>`).join('')}</select></label>
+      <label class="f">${t('staff')}<select id="e-staff">${staffOpts.map((s) => `<option value="${s.id}" ${(draft?.staff||p.staffId)===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>
+      <label class="f">${t('loc')}<select id="e-loc">${P.LOCS.map((l) => `<option value="${l}" ${(draft?.loc||p.loc)===l?'selected':''}>${t(l)}</option>`).join('')}</select></label>
       <label class="f">${t('date')}<input id="e-date" type="date" value="${date}"></label>
-      <label class="f">${t('inT')}<input id="e-in" type="time" value="${p.inMs ? hmOf(p.inMs) : ''}"></label>
-      <label class="f">${t('outT')}<input id="e-out" type="time" value="${p.outMs ? hmOf(p.outMs) : ''}"></label>
-      <label class="f">${t('reason')}<input id="e-reason" placeholder="${t('reasonPh')}"></label>
+      <label class="f">${t('inT')}<input id="e-in" type="time" value="${draft?.in??(p.inMs?hmOf(p.inMs):'')}"></label>
+      <label class="f">${t('outT')}<input id="e-out" type="time" value="${draft?.out??(p.outMs?hmOf(p.outMs):'')}"></label>
+      <label class="f">${t('reason')}<input id="e-reason" value="${esc(draft?.reason||'')}" placeholder="${t('reasonPh')}"></label>
     </div>
-    <label class="f">${t('note')}<input id="e-note" maxlength="300" value="${esc(p.note || '')}" placeholder="${t('notePh')}"></label>
+    <label class="f">${t('note')}<input id="e-note" maxlength="300" value="${esc(draft?.note??p.note??'')}" placeholder="${t('notePh')}"></label>
     ${ui.confirm === 'delPunch' ? `<div class="confirm">${t('delQ')}<button class="btn primary" data-act="delPunch">${t('del')}</button><button class="btn ghost" data-act="noConfirm">${t('cancel')}</button></div>`
       : `<div class="inline-actions"><button class="btn primary" data-act="saveEdit">${t('save')}</button><button class="btn ghost" data-act="cancelEdit">${t('cancel')}</button>${isNew ? '' : `<button class="btn ghost" data-act="askDelPunch">${t('del')}</button>`}</div>`}
     ${isNew ? '' : `<div class="log"><b style="color:var(--ink)">${t('history')}</b>${!log ? t('loading') : log.map((l) => logLine(l, false)).join('')}</div>`}
@@ -834,31 +854,41 @@ function viewCards() {
 
 function currentPayroll() {
   const range = P.periodRange(D.settings, ui.off, today());
-  return P.payroll({ staff: D.staff, wages: D.wages, punches: D.punches, settings: D.settings, tips: D.tips, range, nowMs: Date.now(), locFilter: prefs.loc });
+  const result=P.payroll({staff:D.staff,wages:D.wages,punches:D.punches,settings:D.settings,tips:D.tips,range,nowMs:Date.now(),locFilter:prefs.loc,statReviews:D.statReviews||[]});
+  if(D.loadError||hasUnconfirmedPayrollWrite(mutations.pending())||queue().some(x=>{const d=P.local(Date.parse(x.at)).ymd;return d>=range.start&&d<=range.end;})||(D.clockReviews||[]).some(x=>{const d=P.local(Date.parse(x.at)).ymd;return d>=range.start&&d<=range.end;})){result.ready=false;result.issues.push('unconfirmed_records');}return result;
 }
 
 function viewPay() {
   if (!isOwner()) return `<div class="card empty"><p class="muted">${t('ownerOnly')}</p></div>`;
-  const { range, rows } = currentPayroll(), st = D.settings, o = st.ot;
+  const report=currentPayroll(), { range, rows }=report, st = D.settings, o = st.ot;
   const tot = (k) => rows.reduce((a, r) => a + r[k], 0);
-  const flags = rows.reduce((a, r) => a + r.missing + r.statAvg.filter((x) => x.status === 'unknown').length + (r.noWage ? 1 : 0), 0);
+  const flags=rows.reduce((n,r)=>n+r.issues.length,0)+currentPayroll().issues.length;
   const locs = prefs.loc === 'all' ? P.LOCS : [prefs.loc];
   return `
     <div class="head"><h2>${t('payTitle')}</h2>
       <div class="inline-actions"><button class="btn" data-act="per" data-d="-1" aria-label="${t('prev')}">‹</button><b class="num" style="font-size:14px">${fmtDay(range.start)} – ${fmtDay(range.end)}</b><button class="btn" data-act="per" data-d="1" aria-label="${t('next')}" ${ui.off >= 0 ? 'disabled' : ''}>›</button>${ui.off === 0 ? `<span class="pill on">${t('thisPeriod')}</span>` : ''}</div></div>
+    ${!currentPayroll().ready?`<div class="banner">${t('needsReview')}</div>`:''}<p class="note">${t('affiliationNote')}</p>
     <div class="sum">
       <div class="card kpi"><div class="cap">${t('totalHours')}</div><div class="v">${hrs(tot('hours'))}</div></div>
-      <div class="card kpi"><div class="cap">${t('totalPay')}</div><div class="v">${money(tot('total'))}</div></div>
+      <div class="card kpi"><div class="cap">${t('totalPay')}</div><div class="v">${report.ready?money(tot('total')):'—'}</div>${!report.ready?'<div class="note">'+t('needsReview')+'</div>':''}</div>
       <div class="card kpi"><div class="cap">${t('toCheck')}</div><div class="v">${flags}</div><div class="note">${flags ? t('checkSome', { n: flags }) : t('checkNone')}</div></div>
     </div>
     ${st.tipsOn ? `<div class="card pad set-group"><b>${t('tipsTitle')}</b>
       <div class="tipbox">${locs.map((l) => `<label class="f">${t(l)} ($)<input type="number" inputmode="decimal" min="0" step="0.01" data-tip="${range.start}|${l}" value="${D.tips[`${range.start}|${l}`] ?? ''}" placeholder="0.00" style="width:150px"></label>`).join('')}</div>
       <p class="note">${t('tipsHint', { m: st.tipMethod === 'equal' ? t('equally') : t('byHours') })}</p></div>` : ''}
+    ${rows.some(r=>r.statAvg.some(x=>x.status==='unknown'))?'<h3>'+t('statReviewTitle')+'</h3>':''}
+${rows.map(r=>r.statAvg.filter(x=>x.status==='unknown').map(x=>{const key=r.staff.id+'|'+x.date,dr=(ui.statDraft||{})[key]||{};return `<div class="card pad stat-review" data-staff="${r.staff.id}" data-date="${x.date}">
+<b>${esc(r.staff.name)} · ${fmtDay(x.date)}</b><p class="note">${t('reviewNote')}</p>
+<div class="form"><label class="f">${t('reviewPick')}<select data-review="qualified"><option value="">—</option><option value="yes" ${dr.qualified==='yes'?'selected':''}>${t('qualified')}</option><option value="no" ${dr.qualified==='no'?'selected':''}>${t('notQualified')}</option></select></label>
+<label class="f">${t('statAvg')} ($)<input data-review="amount" type="number" step="0.01" min="0" value="${esc(dr.amount||'')}"></label></div>
+<label class="f">${t('reviewNote')}<input data-review="note" value="${esc(dr.note||'')}" minlength="5"></label>
+<button class="btn" data-act="saveStatReview" data-id="${r.staff.id}|${x.date}">${t('reviewSave')}</button></div>`;}).join('')).join('')}
     ${rows.length ? `<div class="card">${rows.map((r) => `
       <div class="pay-card" data-act="toggle" data-id="${r.staff.id}">
-        <div class="pay-top"><div class="who">${av(r.staff.name)}<span>${esc(r.staff.name)}</span>${r.missing ? `<span class="pill alert">${t('toCheck')} ${r.missing}</span>` : ''}${r.noWage ? `<span class="pill alert">${t('noWage')}</span>` : ''}</div><div class="amt">${money(r.total)}</div></div>
+        <div class="pay-top"><div class="who">${av(r.staff.name)}<span>${esc(r.staff.name)}</span>${r.missing ? `<span class="pill alert">${t('toCheck')} ${r.missing}</span>` : ''}${r.noWage ? `<span class="pill alert">${t('noWage')}</span>` : ''}</div><div class="amt">${r.issues.length?'—':money(r.total)}</div></div>
         <div class="break"><span>${t('reg')} <b>${hrs(r.reg)}</b></span>${r.x15 ? `<span>${t('ot15')} <b>${hrs(r.x15)}</b></span>` : ''}${r.x2 ? `<span>${t('ot2')} <b>${hrs(r.x2)}</b></span>` : ''}${r.stat ? `<span>${t('stat')} <b>${hrs(r.stat)}</b></span>` : ''}${r.stat2 ? `<span>${t('stat2')} <b>${hrs(r.stat2)}</b></span>` : ''}
           <span>${t('wage')} <b>${r.wagesUsed.length > 1 ? r.wagesUsed.map(money).join(' → ') : money(r.wage)}</b></span><span>${t('gross')} <b>${money(r.gross)}</b></span>${r.statAvgTotal ? `<span>${t('statAvg')} <b>${money(r.statAvgTotal)}</b></span>` : ''}${st.vac?.on ? `<span>${t('vac')} <b>${money(r.vac)}</b></span>` : ''}${st.tipsOn ? `<span>${t('tips')} <b>${money(r.tips)}</b></span>` : ''}</div>
+        ${r.issues.filter(x=>x!=='stat_review').map(x=>'<div class="note">'+t(x)+'</div>').join('')}
         ${r.statAvg.filter((x) => x.status === 'unknown').map((x) => `<div class="note"><span class="pill alert">!</span> ${t('statUnknown', { d: fmtDay(x.date) })}</div>`).join('')}
         ${ui.open[r.staff.id] ? `<div class="days">${r.days.map((c) => `<div><span>${fmtDay(c.date)}</span><span class="num muted">${c.punches.map((p) => hmOf(p.inMs) + '–' + hmOf(p.outMs)).join(', ')}${P.statOn(c.date) && st.stat.on ? ' · ' + esc(statName(P.statOn(c.date))) : ''}</span><span class="num">${hrs(c.hours)}h</span></div>`).join('')}
           ${r.statAvg.filter((x) => x.status === 'yes').map((x) => `<div><span>${fmtDay(x.date)}</span><span class="muted">${t('statAvg')}</span><span class="num">${money(x.amount)}</span></div>`).join('')}</div>` : ''}
@@ -870,13 +900,16 @@ function viewPay() {
     <p class="note">${t('ruleNote', { d1: o.d1, x1: o.d1x, d2: o.d2, x2: o.d2x, w: o.w, wx: o.wx, sx: st.stat.x })}</p>`;
 }
 
+function requirePayrollReady(){if(!currentPayroll().ready)throw new Error(t('needsReview'));}
 function summaryTable() {
+  requirePayrollReady();
   const { range, rows } = currentPayroll();
   const head = [t('staff'), t('loc'), t('reg'), t('ot15'), t('ot2'), t('stat'), t('stat2'), t('totalHours'), t('wage'), t('gross'), t('statAvg'), t('vac'), t('tips'), t('totalPay')];
   const body = rows.map((r) => [r.staff.name, t(r.staff.loc), hrs(r.reg), hrs(r.x15), hrs(r.x2), hrs(r.stat), hrs(r.stat2), hrs(r.hours), r.wagesUsed.map((w) => w.toFixed(2)).join(' / ') || r.wage.toFixed(2), r.gross.toFixed(2), r.statAvgTotal.toFixed(2), r.vac.toFixed(2), r.tips.toFixed(2), r.total.toFixed(2)]);
   return { range, lines: [head, ...body] };
 }
 function detailTable() {
+  requirePayrollReady();
   const { range, rows } = currentPayroll();
   const head = [t('staff'), t('date'), t('loc'), t('inT'), t('outT'), t('totalHours'), t('wage'), t('note')];
   const body = [];
@@ -894,40 +927,14 @@ function sheetFrom(X, rows, widths) {
   if (widths) ws['!cols'] = widths.map((wch) => ({ wch }));
   return ws;
 }
-async function payrollXlsx() {
-  toast(t('xlsxBusy'));
-  const X = await loadXLSX();
-  const { range, rows } = currentPayroll(), st = D.settings, o = st.ot;
-  const vac = st.vac?.on ? st.vac.pct / 100 : 0;
-  const head = [t('staff'), t('loc'), t('reg'), t('ot15'), t('ot2'), t('stat'), t('stat2'), t('wage'), t('gross'), t('statAvg'), t('vac'), t('tips'), t('total')];
-  const top = [[`Cafe Ricotta — ${t('shSum')}`], [t('period2'), `${range.start} ~ ${range.end}`], [t('rules2'), `${t('ot15')} ×${o.d1x} · ${t('ot2')} ×${o.d2x} · ${t('stat')} ×${st.stat.x}${vac ? ` · ${t('vac')} ${st.vac.pct}%` : ''}`], [], head];
-  const first = top.length + 1;
-  const body = rows.map((r, i) => {
-    const n = first + i;
-    const mixed = r.wagesUsed.length > 1;
-    const gross = mixed ? +r.gross.toFixed(2) : { f: `ROUND(H${n}*(C${n}+D${n}*${o.d1x}+E${n}*${o.d2x}+F${n}*${st.stat.x}+G${n}*${o.d2x}),2)` };
-    return [r.staff.name, t(r.staff.loc), +hrs(r.reg), +hrs(r.x15), +hrs(r.x2), +hrs(r.stat), +hrs(r.stat2), r.wage, gross, +r.statAvgTotal.toFixed(2),
-      { f: `ROUND((I${n}+J${n})*${vac},2)` }, +r.tips.toFixed(2), { f: `I${n}+J${n}+K${n}+L${n}` }, mixed ? t('wageMixed') : ''];
-  });
-  const last = first + rows.length - 1;
-  const sumRow = [t('total'), '', ...['C', 'D', 'E', 'F', 'G'].map((c) => ({ f: `SUM(${c}${first}:${c}${last})` })), '', ...['I', 'J', 'K', 'L', 'M'].map((c) => ({ f: `SUM(${c}${first}:${c}${last})` }))];
-  const wb = X.utils.book_new();
-  X.utils.book_append_sheet(wb, sheetFrom(X, [...top, ...body, sumRow], [14, 9, 8, 9, 9, 10, 10, 8, 11, 11, 10, 9, 12, 26]), t('shSum'));
-  const det = [[t('staff'), t('date'), t('dowCol'), t('loc'), t('inT'), t('outT'), t('totalHours'), t('wage'), t('note')]];
-  for (const r of rows) for (const c of r.days) for (const p of c.punches) det.push([r.staff.name, c.date, t('dow')[P.dow(c.date)], t(p.loc), hmOf(p.inMs), hmOf(p.outMs), +hrs(P.shiftHours(p, st)), P.wageOn(D.wages, r.staff.id, c.date), p.note || '']);
-  X.utils.book_append_sheet(wb, sheetFrom(X, det, [14, 11, 5, 9, 7, 7, 9, 8, 30]), t('shDetail'));
-  X.writeFile(wb, `ricotta-payroll-${range.start}_${range.end}.xlsx`);
-  toast(t('xlsxDone'));
+async function payrollXlsx(){
+ await loadAll();requirePayrollReady();
+ const snapshot=structuredClone(currentPayroll()),settings=structuredClone(D.settings),wages=structuredClone(D.wages);
+ toast(t('xlsxBusy'));const X=await loadXLSX();
+ const wb=payrollWorkbook(X,snapshot,settings,wages,t);
+ X.writeFile(wb,'ricotta-payroll-'+snapshot.range.start+'_'+snapshot.range.end+'.xlsx');toast(t('xlsxDone'));
 }
-async function fetchAll(table, order) {
-  const out = [];
-  for (let page = 0; ; page++) {
-    const { data, error } = await sb.from(table).select('*').order(order).range(page * 1000, page * 1000 + 999);
-    if (error) throw error;
-    out.push(...data);
-    if (data.length < 1000) return out;
-  }
-}
+async function fetchAll(table,order){const keys=table==='tips'?['period_start','loc']:table==='members'?['user_id']:table==='invites'?['email']:table==='settings'?['id']:[order,'id'].filter((x,i,a)=>a.indexOf(x)===i);return paged(table,q=>q,keys);}
 async function backupXlsx() {
   toast(t('xlsxBusy'));
   const X = await loadXLSX();
@@ -946,8 +953,7 @@ async function backupXlsx() {
   add([[t('shSettings')], [JSON.stringify(D.settings)]], t('shSettings'), [120]);
   X.writeFile(wb, `ricotta-backup-${today()}.xlsx`);
   const st = { ...D.settings, lastBackup: today() };
-  const { error } = await sb.from('settings').update({ data: st, updated_at: new Date().toISOString() }).eq('id', 1);
-  if (!error) D.settings = st;
+  const {data,error}=await sb.rpc('patch_setting',{p_path:['lastBackup'],p_value:st.lastBackup,p_expected:D.settings.lastBackup??null});if(error)throw error;D.settings=data;
   render(); toast(t('backupDone'));
 }
 
@@ -964,14 +970,14 @@ function viewStaff() {
   const since = P.addDays(today(), -7);
   const form = (s) => {
     const hist = D.wages.filter((w) => w.staffId === s.id).sort((a, b) => b.effective.localeCompare(a.effective));
-    return `<div class="editbox">
+    return `<div class="editbox" data-staffkey="${s.id||'new'}">
     <div class="form">
       <label class="f">${t('name')}<input id="st-name" value="${esc(s.name)}" maxlength="60"></label>
       <label class="f">${t('role')}<input id="st-role" value="${esc(s.role)}" placeholder="${t('rolePh')}"></label>
       <label class="f">${t('loc')}<select id="st-loc">${['langley', 'burnaby', 'both'].map((l) => `<option value="${l}" ${s.loc === l ? 'selected' : ''}>${t(l)}</option>`).join('')}</select></label>
       <label class="f">${t('startDate')}<input id="st-start" type="date" value="${s.start_date || ''}"></label>
-      ${s.isNew && owner ? `<label class="f">${t('wageL')}<input id="st-wage" type="number" inputmode="decimal" step="0.05" min="0" value="18.25"></label>` : ''}
-      <label class="f">${t('pin')} · ${s.has_pin ? t('pinSet') : t('pinNone')}<input id="st-pin" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="${t('pinNew')}"></label>
+      ${s.isNew && owner ? `<label class="f">${t('wageL')}<input id="st-wage" type="number" inputmode="decimal" step="0.05" min="0" value="${s.wageDraft??18.25}"></label>` : ''}
+      <label class="f">${t('pin')} · ${s.has_pin ? t('pinSet') : t('pinNone')}<input id="st-pin" value="${esc(s.pinDraft||'')}" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="${t('pinNew')}"></label>
     </div>
     <p class="note">${t('pinHint')}${s.has_pin ? ` <button class="link" data-act="clearPin">${t('pinClear')}</button>` : ''}</p>
     <label class="check"><input type="checkbox" id="st-active" ${s.active ? 'checked' : ''}> ${t('active')}</label>
@@ -980,7 +986,7 @@ function viewStaff() {
     ${!s.isNew && owner ? `<div class="set-group" style="border-top:1px dashed var(--line);padding-top:12px">
       <b>${t('wageHist')}</b>
       <div class="log">${hist.length ? hist.map((w) => `<span class="num">${w.effective} ~ · ${money(w.wage)}</span>`).join('') : `<span>${t('noWage')}</span>`}</div>
-      <div class="form"><label class="f">${t('wageNew')} ($)<input id="w-amt" type="number" inputmode="decimal" step="0.05" min="0"></label><label class="f">${t('wageFrom')}<input id="w-from" type="date" value="${today()}"></label></div>
+      <div class="form"><label class="f">${t('wageNew')} ($)<input id="w-amt" value="${esc(s.nextWage||'')}" type="number" inputmode="decimal" step="0.05" min="0"></label><label class="f">${t('wageFrom')}<input id="w-from" type="date" value="${s.nextWageDate||today()}"></label></div>
       <div><button class="btn" data-act="addWage">${t('wageAdd')}</button></div></div>` : ''}
   </div>`;
   };
@@ -1019,6 +1025,7 @@ function viewSettings() {
       <div class="card">${D.members.map((m) => `<div class="row"><div><b>${esc(m.email)}</b> ${m.user_id === D.me.id ? `<span class="pill">${t('you')}</span>` : ''}<div class="sub"><span>${t(m.role)}</span></div></div>
         <div>${m.user_id === D.me.id ? '' : ui.confirm === 'mem:' + m.user_id ? `<div class="confirm">${t('removeQ')}<button class="btn primary" data-act="removeMember" data-id="${m.user_id}">${t('remove')}</button><button class="btn ghost" data-act="noConfirm">${t('cancel')}</button></div>` : `<button class="btn" data-act="askRemove" data-id="${m.user_id}">${t('remove')}</button>`}</div></div>`).join('')}
         ${D.invites.map((i) => `<div class="row"><div><b>${esc(i.email)}</b><div class="sub"><span>${t(i.role)}</span><span class="pill">${t('invited')}</span></div></div><button class="btn" data-act="delInvite" data-id="${esc(i.email)}">${t('remove')}</button></div>`).join('')}</div>
+      ${ui.inviteToken?`<div class="banner"><div>${t('inviteCodeHelp')}<input readonly value="${esc(ui.inviteToken)}" aria-label="${t('inviteCode')}"></div></div>`:''}
       <div class="form"><label class="f">${t('email')}<input id="inv-email" type="email" autocomplete="off"></label><label class="f">${t('role')}<select id="inv-role"><option value="manager">${t('manager')}</option><option value="owner">${t('owner')}</option></select></label></div>
       <div><button class="btn" data-act="invite">${t('invite')}</button> <span class="note">${esc(appUrl)}</span></div></div>` : ''}
     <div class="card pad set-group"><h3>${t('rules')}</h3>${owner ? '' : `<p class="note">${t('ownerOnly')}</p>`}
@@ -1070,7 +1077,12 @@ function renderAdmin() {
     </div>
     <nav class="tabs" role="tablist">${tabs.map(([id, k]) => `<button role="tab" data-act="goTab" data-tab="${id}" aria-selected="${ui.tab === id}">${I[id]}<span>${t(k)}</span></button>`).join('')}</nav></header>
     <main class="wrap"><section class="view">
+      ${pendingSaves()}
       ${deviceToken() ? `<div class="banner"><span>${t('kioskBanner')}</span><button class="btn primary" data-act="toKiosk">${t('toKiosk')}</button></div>` : ''}
+      ${(D.clockReviews||[]).map(r=>`<div class="card pad clock-review"><b>${t('queueReview')} · ${esc(staffById(r.staff_id)?.name||'')} · ${esc(P.local(Date.parse(r.at)).ymd)} ${esc(P.local(Date.parse(r.at)).hm)}</b>
+<p>${esc(r.reason)} · ${esc(r.action)}</p><label class="f">${prefs.lang==='ko'?'정정한 근무기록을 연결하거나, 근무가 아닌 입력이면 사유를 적어 제외하세요.':'Link a corrected shift, or explain why this was not work.'}
+<select><option value="">${t('reviewPick')}</option><option value="none">${prefs.lang==='ko'?'근무가 아닌 입력으로 확인':'Confirmed as not worked'}</option>${D.punches.filter(p=>p.staffId===r.staff_id).map(p=>`<option value="${p.id}">${P.punchDay(p)} ${hmOf(p.inMs)}–${hmOf(p.outMs)}</option>`).join('')}</select></label>
+<input minlength="5" placeholder="${t('reason')}"><button class="btn" data-act="resolveClock" data-id="${r.client_id}">${t('reviewSave')}</button></div>`).join('')}
       ${view}</section></main>`;
   window.scrollTo(0, y);
 }
@@ -1078,16 +1090,27 @@ function renderAdmin() {
 function renderNoAccess() {
   $('#root').innerHTML = `<div class="auth"><div class="brand"><b>Cafe Ricotta</b><span>${t('sub')}</span></div>
     <div class="card empty"><h3>${t('noAccess')}</h3><p class="note">${t('noAccessD', { e: esc(app.email) })}</p>
+    <label class="f">${t('inviteCode')}<input id="accept-code" autocomplete="off"></label><button class="btn primary" data-act="acceptInvite">${t('acceptInvite')}</button>
     <div class="inline-actions"><button class="btn primary" data-act="retryJoin">${t('retry')}</button><button class="btn" data-act="signOut">${t('signOut')}</button></div></div></div>`;
 }
 
-function render() {
-  collectDraft();
-  if (!sb) { $('#root').innerHTML = `<div class="auth"><div class="brand"><b>Cafe Ricotta</b></div><div class="banner">${t('notConfigured')}</div></div>`; return; }
-  ({ boot: () => { $('#root').innerHTML = `<div class="auth"><p class="muted">${t('loading')}</p></div>`; }, kiosk: renderKiosk, login: renderLogin, noaccess: renderNoAccess, admin: renderAdmin })[app.mode]();
+function collectForms(){
+ (ui.statDraft||={});for(const box of document.querySelectorAll('.stat-review')){ui.statDraft[box.dataset.staff+'|'+box.dataset.date]=Object.fromEntries([...box.querySelectorAll('[data-review]')].map(el=>[el.dataset.review,el.value]));}
+ const box=document.querySelector('.editbox[data-punch]'),key=ui.newPunch?'new':ui.editId;
+ if(box&&key&&box.dataset.punch===key)ui.punchDraft={key,staff:$('#e-staff').value,loc:$('#e-loc').value,date:$('#e-date').value,in:$('#e-in').value,out:$('#e-out').value,reason:$('#e-reason').value,note:$('#e-note').value};
+ const staffBox=document.querySelector('.editbox[data-staffkey]'),f=ui.staffEdit;
+ if(staffBox&&f&&staffBox.dataset.staffkey===(f.id||'new')){
+  Object.assign(f,{name:$('#st-name').value,role:$('#st-role').value,loc:$('#st-loc').value,start_date:$('#st-start').value,active:$('#st-active').checked,pinDraft:$('#st-pin').value,wageDraft:$('#st-wage')?.value,nextWage:$('#w-amt')?.value,nextWageDate:$('#w-from')?.value});
+ }
+}
+function render(collect=true) {
+ if(collect)collectDraft();collectForms();
+ if(!sb){$('#root').innerHTML='<div class="auth">'+t('notConfigured')+'</div>';return;}
+ ({boot:()=>{$('#root').innerHTML='<div class="auth">'+t('loading')+'</div>';},kiosk:()=>renderKiosk(false),login:renderLogin,noaccess:renderNoAccess,admin:renderAdmin})[app.mode]();
 }
 
 async function toKiosk() {
+  if(D)await pushDisable();
   await sb.auth.signOut();
   D = null; app.mode = 'kiosk'; K.pick = null; K.pin = ''; K.view = 'clock';
   Object.assign(O, { orders: [], editId: null, draft: null, isNew: false, photo: {}, logs: {}, confirm: null });
@@ -1096,18 +1119,36 @@ async function toKiosk() {
 
 // ---------- events ----------
 document.addEventListener('click', async (e) => {
+ try {
   K.lastTouch = Date.now();
   const el = e.target.closest('[data-act]');
   if (!el) return;
   const act = el.dataset.act, id = el.dataset.id;
+  if(WRITE_ACTIONS.has(act))await requireConnection();
+  if(act==='confirmPending'||act==='retryPending'){if(act==='retryPending')await mutations.retry(id);else await mutations.recover();if(app.mode==='admin')await loadAll();else{await ordersLoad();render();}return;}
   const go = (tab) => { ui.tab = tab; ui.csv = ''; ui.confirm = null; ui.hist = null; history.replaceState(null, '', '#' + tab); render(); window.scrollTo(0, 0); };
+
+  if(act==='saveStatReview'){
+   collectForms();const [staff,date]=id.split('|'),draft=ui.statDraft[id],row=currentPayroll().rows.find(r=>r.staff.id===staff),stat=row.statAvg.find(x=>x.date===date);
+   if(draft.qualified==='no'&&stat.qualified==='yes')throw new Error(prefs.lang==='ko'?'기록상 재직 30일·근무 15일 조건을 충족합니다. 자격 없음으로 처리할 수 없습니다.':'Recorded employment and worked days meet the eligibility rule; this cannot be marked ineligible.');
+   if(!draft.qualified||draft.note.trim().length<5||draft.qualified==='yes'&&draft.amount==='')throw new Error(t('reviewPick'));
+   const previous=(D.statReviews||[]).find(x=>x.staff_id===staff&&x.date===date);
+   const {error}=await sb.rpc('save_stat_review',{p_staff:staff,p_date:date,p_qualified:draft.qualified==='yes',p_amount:draft.qualified==='yes'?+draft.amount:0,p_note:draft.note,p_basis:stat.basis,p_version:previous?.version??null});
+   if(error)throw error;delete ui.statDraft[id];await loadAll();return;
+  }
+  if(act==='resolveClock'){
+   const box=el.closest('.clock-review'),record=box.querySelector('select').value,note=box.querySelector('input').value;
+   if(!record)throw new Error('reviewPick');
+   const {error}=await sb.rpc('resolve_clock_review',{p_client:id,p_punch:record==='none'?null:record,p_note:note});if(error)throw error;await loadAll();return;
+  }
 
   // shared
   if (act === 'lang') { prefs.lang = id; savePrefs(); render(); return; }
   if (act === 'toKiosk') { toKiosk(); return; }
-  if (act === 'signOut') { await sb.auth.signOut(); D = null; if (deviceToken()) toKiosk(); else { app.mode = 'login'; app.authView = 'in'; render(); } return; }
+  if (act === 'signOut') { await pushDisable(); await sb.auth.signOut(); D = null; if (deviceToken()) toKiosk(); else { app.mode = 'login'; app.authView = 'in'; render(); } return; }
   if (act === 'authView') { app.authView = id; app.authMsg = ''; renderLogin(); return; }
-  if (act === 'retryJoin') { enterAdmin(); return; }
+  if (act === 'retryJoin') {await enterAdmin();return;}
+  if(act==='acceptInvite'){const {error}=await sb.rpc('accept_invite',{p_token:$('#accept-code').value.trim()});if(error)throw error;await enterAdmin();return;}
 
   if (act === 'pushEnable') { try { await pushEnable(); } catch (err) { fail(err); } return; }
   if (act === 'pushDisable') { try { await pushDisable(); } catch (err) { fail(err); } return; }
@@ -1178,7 +1219,7 @@ document.addEventListener('click', async (e) => {
   // timesheet
   else if (act === 'edit') {
     if (e.target.closest('input,select,button,label,.editbox')) return;
-    ui.editId = ui.editId === id ? null : id; ui.newPunch = null; ui.confirm = null; render();
+    ui.editId = ui.editId === id ? null : id; ui.newPunch = null; ui.punchDraft=null; ui.confirm = null; render();
     if (ui.editId && !ui.logs[id]) {
       const { data } = await sb.from('punch_log').select('*').eq('punch_id', id).order('id');
       ui.logs[id] = data || []; render();
@@ -1188,28 +1229,29 @@ document.addEventListener('click', async (e) => {
     const sid = ui.cardStaff !== 'all' ? ui.cardStaff : (D.staff.find((s) => s.active && inLoc(s.loc)) || D.staff[0]).id;
     const s = staffById(sid);
     ui.newPunch = { staffId: sid, loc: s.loc === 'both' ? (prefs.loc === 'all' ? 'langley' : prefs.loc) : s.loc, inMs: null, outMs: null };
-    ui.editId = null; render();
+    ui.editId = null; ui.punchDraft=null; render();
   }
-  else if (act === 'cancelEdit') { ui.newPunch = null; ui.editId = null; ui.confirm = null; render(); }
+  else if (act === 'cancelEdit') { ui.newPunch = null; ui.editId = null; ui.punchDraft=null; ui.confirm = null; render(); }
   else if (act === 'askDelPunch') { ui.confirm = 'delPunch'; render(); }
-  else if (act === 'delPunch') {
-    const reason = $('#e-reason')?.value.trim() || t('manual');
-    const { error } = await sb.from('punches').update({ deleted: true, edit_reason: reason }).eq('id', ui.editId);
-    if (error) return fail(error);
-    delete ui.logs[ui.editId]; ui.editId = null; ui.confirm = null; toast(t('deleted')); loadAll();
+  else if(act==='delPunch'){
+   const reason=$('#e-reason')?.value.trim()||t('manual'),p=D.punches.find(x=>x.id===ui.editId);
+   await mutations.call('save_punch',{p_id:p.id,p_data:{deleted:true,edit_reason:reason},p_version:p.version},'punch:'+p.id);
+   delete ui.logs[p.id];ui.editId=null;ui.punchDraft=null;ui.confirm=null;toast(t('deleted'));await loadAll();
   }
   else if (act === 'saveEdit') {
     const d = $('#e-date').value, i = $('#e-in').value, o = $('#e-out').value;
     if (!d || (!i && !o)) { toast(t('needTime')); return; }
-    const inMs = i ? P.fromLocal(d, i) : null;
-    let outMs = o ? P.fromLocal(d, o) : null;
-    if (inMs != null && outMs != null && outMs <= inMs) outMs = P.fromLocal(P.addDays(d, 1), o);
+    const original=D.punches.find(x=>x.id===ui.editId);
+    const parse=(hm,at)=>hm?(at&&P.local(at).ymd===d&&P.local(at).hm===hm?at:P.fromLocal(d,hm)):null;
+    const inMs=parse(i,original?.inMs);
+    let outMs=parse(o,original?.outMs);
+    if (inMs != null && outMs != null && outMs === inMs) throw new Error('invalid_time');
+    if (inMs != null && outMs != null && outMs < inMs) outMs = P.fromLocal(P.addDays(d, 1), o);
     const row = { staff_id: $('#e-staff').value, loc: $('#e-loc').value, note: $('#e-note').value.trim(), clock_in: iso(inMs), clock_out: iso(outMs), edit_reason: $('#e-reason').value.trim() || (ui.newPunch ? null : t('manual')) };
     const isNew = !!ui.newPunch;
-    const { error } = isNew ? await sb.from('punches').insert({ ...row, source: 'manual' }) : await sb.from('punches').update(row).eq('id', ui.editId);
-    if (error) return fail(error);
+    await mutations.call('save_punch',{p_id:isNew?null:ui.editId,p_data:row,p_version:isNew?null:D.punches.find(x=>x.id===ui.editId)?.version},'punch:'+(isNew?'new':ui.editId));
     if (!isNew) delete ui.logs[ui.editId];
-    ui.newPunch = null; ui.editId = null; toast(t('saved')); loadAll();
+    ui.newPunch = null; ui.editId = null; ui.punchDraft=null; toast(t('saved'));await loadAll();
   }
   else if (act === 'loadMore') { loadAll(P.addDays(D.loadedFrom, -60)); }
   // payroll
@@ -1220,6 +1262,7 @@ document.addEventListener('click', async (e) => {
   }
   else if (act === 'toggle') { ui.open[id] = !ui.open[id]; render(); }
   else if (act === 'csv') {
+    await loadAll();
     const { range, lines } = summaryTable();
     ui.csv = `${range.start} ~ ${range.end}\n` + lines.map((l) => l.join('\t')).join('\n');
     const fallback = () => { render(); const ta = $('#csvOut'); if (ta) { ta.focus(); ta.select(); } toast(t('selected')); };
@@ -1227,8 +1270,8 @@ document.addEventListener('click', async (e) => {
   }
   else if (act === 'xlsx') { try { await payrollXlsx(); } catch (err) { fail(err); } }
   else if (act === 'backup') { try { await backupXlsx(); } catch (err) { fail(err); } }
-  else if (act === 'dlSum') { const { range, lines } = summaryTable(); download(`ricotta-payroll-${range.start}_${range.end}.csv`, lines); }
-  else if (act === 'dlDetail') { const { range, lines } = detailTable(); download(`ricotta-shifts-${range.start}_${range.end}.csv`, lines); }
+  else if (act === 'dlSum') { await loadAll(); const { range, lines } = summaryTable(); download(`ricotta-payroll-${range.start}_${range.end}.csv`, lines); }
+  else if (act === 'dlDetail') { await loadAll(); const { range, lines } = detailTable(); download(`ricotta-shifts-${range.start}_${range.end}.csv`, lines); }
   // staff
   else if (act === 'newStaff') { ui.staffEdit = { id: null, name: '', role: '', loc: prefs.loc === 'all' ? 'langley' : prefs.loc, start_date: null, active: true, has_pin: false, isNew: true }; render(); }
   else if (act === 'editStaff') { if (e.target.closest('input,select,button,label,.editbox')) return; ui.staffEdit = ui.staffEdit?.id === id ? null : { ...staffById(id) }; render(); }
@@ -1236,30 +1279,15 @@ document.addEventListener('click', async (e) => {
   else if (act === 'clearPin') {
     const { error } = await sb.rpc('set_staff_pin', { p_staff: ui.staffEdit.id, p_pin: null });
     if (error) return fail(error);
-    ui.staffEdit.has_pin = false; toast(t('saved')); loadAll();
+    collectForms();ui.staffEdit.has_pin=false;ui.staffEdit.version++;ui.staffEdit.pinDraft='';toast(t('saved'));await loadAll();
   }
-  else if (act === 'saveStaff') {
-    const f = ui.staffEdit, name = $('#st-name').value.trim(), pin = $('#st-pin').value.trim();
-    if (!name) { toast(t('needName')); return; }
-    if (pin && !/^\d{4}$/.test(pin)) { toast(t('pinBad')); return; }
-    const row = { name, role: $('#st-role').value.trim(), loc: $('#st-loc').value, start_date: $('#st-start').value || null, active: $('#st-active').checked };
-    let sid = f.id;
-    if (f.isNew) {
-      const { data, error } = await sb.from('staff').insert(row).select().single();
-      if (error) return fail(error);
-      sid = data.id;
-      const wage = +($('#st-wage')?.value || 0);
-      if (isOwner() && wage > 0) {
-        const { error: we } = await sb.from('staff_wages').insert({ staff_id: sid, wage, effective: row.start_date || today() });
-        if (we) fail(we);
-      }
-    } else {
-      const { error } = await sb.from('staff').update(row).eq('id', sid);
-      if (error) return fail(error);
-    }
-    if (pin) { const { error } = await sb.rpc('set_staff_pin', { p_staff: sid, p_pin: pin }); if (error) fail(error); }
-    toast(f.isNew ? t('added', { n: name }) : t('saved'));
-    ui.staffEdit = null; loadAll();
+  else if(act==='saveStaff'){
+   const f=ui.staffEdit,name=$('#st-name').value.trim(),pin=$('#st-pin').value.trim();
+   if(!name){toast(t('needName'));return;}if(pin&&!/^\d{4}$/.test(pin)){toast(t('pinBad'));return;}
+   const row={name,role:$('#st-role').value.trim(),loc:$('#st-loc').value,start_date:$('#st-start').value||null,active:$('#st-active').checked};
+   const wage=f.isNew&&isOwner()?+($('#st-wage')?.value||0):null;
+   await mutations.call('save_staff',{p_id:f.id||null,p_data:row,p_wage:wage||null,p_pin:pin||null,p_version:f.version??null},'staff:'+(f.id||'new'));
+   ui.staffEdit=null;toast(t('saved'));await loadAll();
   }
   else if (act === 'addWage') {
     const amt = +$('#w-amt').value, from = $('#w-from').value;
@@ -1272,10 +1300,11 @@ document.addEventListener('click', async (e) => {
   else if (act === 'regOpen') { ui.regOpen = true; render(); }
   else if (act === 'regClose') { ui.regOpen = false; render(); }
   else if (act === 'regDevice') {
+    if(queue().length)throw new Error('pending_review');
     const loc = $('#d-loc').value, name = $('#d-name').value.trim() || `${t(loc)} iPad`;
     const { data, error } = await sb.rpc('register_device', { p_name: name, p_loc: loc });
     if (error) return fail(error);
-    store.set(K_DEVICE, data); store.del(K_CACHE); store.del(K_QUEUE);
+    writeStored(localStorage,K_DEVICE,data); store.del(K_CACHE);
     ui.regOpen = false; toast(t('registered'));
     setTimeout(toKiosk, 900);
   }
@@ -1288,9 +1317,8 @@ document.addEventListener('click', async (e) => {
   else if (act === 'invite') {
     const email = $('#inv-email').value.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(email)) return;
-    const { error } = await sb.from('invites').upsert({ email, role: $('#inv-role').value, created_by: D.me.id });
-    if (error) return fail(error);
-    toast(t('invitedOk', { u: location.origin + location.pathname })); loadAll();
+    const {data,error}=await sb.rpc('create_invite',{p_email:email,p_role:$('#inv-role').value});if(error)throw error;
+    ui.inviteToken=data;await loadAll();
   }
   else if (act === 'delInvite') { const { error } = await sb.from('invites').delete().eq('email', id); if (error) return fail(error); loadAll(); }
   else if (act === 'askRemove') { ui.confirm = 'mem:' + id; render(); }
@@ -1302,6 +1330,7 @@ document.addEventListener('click', async (e) => {
     if (error) return fail(error);
     $('#acc-pw').value = ''; toast(t('pwChanged'));
   }
+ }catch(error){fail(error);}
 });
 
 document.addEventListener('submit', (e) => {
@@ -1312,8 +1341,10 @@ document.addEventListener('submit', (e) => {
 });
 
 document.addEventListener('change', async (e) => {
+ try{
   const el = e.target;
   if (app.mode !== 'admin' || !D) return;
+  if(el.dataset.cake||el.dataset.tip||settingPaths[el.id])await requireConnection();
   if (el.id === 'cardStaff') { ui.cardStaff = el.value; render(); return; }
   if (el.dataset.cake) { const name = el.value.trim(); if (!name) return; const { error } = await sb.from('cake_items').update({ name }).eq('id', el.dataset.cake); if (error) return fail(error); await ordersLoad(); toast(t('saved')); return; }
   if (el.id === 'onlyIssues') { ui.onlyIssues = el.checked; render(); return; }
@@ -1338,9 +1369,12 @@ document.addEventListener('change', async (e) => {
   };
   if (!map[el.id]) return;
   map[el.id]();
-  const { data, error } = await sb.from('settings').update({ data: st, updated_at: new Date().toISOString() }).eq('id', 1).select();
-  if (error || !data?.length) { fail(error || { message: t('ownerOnly') }); render(); return; }
-  D.settings = st; render(); toast(t('setChanged'));
+  const path=settingPaths[el.id],value=path.reduce((o,k)=>o?.[k],st);
+  settingWrites=settingWrites.then(async()=>{await requireConnection();const expected=path.reduce((o,k)=>o?.[k],D.settings)??null;
+   const {data,error}=await sb.rpc('patch_setting',{p_path:path,p_value:value,p_expected:expected});if(error)throw error;
+   D.settings=data;render();toast(t('setChanged'));
+  }).catch(fail);
+ }catch(error){fail(error);}
 });
 
 // ---------- timers ----------
@@ -1363,13 +1397,15 @@ document.addEventListener('visibilitychange', () => {
   if (app.mode === 'kiosk' && K.view === 'clock') kioskLoad();
   else if (app.mode === 'admin' && D && !O.draft && !ui.editId && !ui.staffEdit && !ui.newPunch) loadAll();
 });
-window.addEventListener('online', () => { if (app.mode === 'kiosk') kioskLoad(); });
+window.addEventListener('offline',()=>{setConnection(false);K.online=false;reconnect();});
+window.addEventListener('online',reconnect);
 for (const ev of ['keydown', 'input', 'touchstart']) document.addEventListener(ev, () => { K.lastTouch = Date.now(); }, { passive: true });
 
 // ---------- boot ----------
 async function boot() {
   render();
   if (!sb) return;
+  await requireConnection();
   sb.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') { app.recovering = true; app.mode = 'login'; render(); }
   });
@@ -1382,6 +1418,6 @@ async function boot() {
   if (!app.hasOwner) app.authView = 'up';
   app.mode = 'login'; render();
 }
-boot();
+boot().catch(error=>{$('#root').innerHTML='<div class="auth"><div class="banner">'+esc(error.message==='runtime_update_required'?(prefs.lang==='ko'?'앱과 서버의 시간대 또는 버전이 맞지 않습니다. 업데이트를 확인해 주세요.':'App/server time data or versions differ. Check updates.'):(TXT[prefs.lang][error.message]?t(error.message):error.message||'Load failed'))+'</div></div>';});
 
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if (!cfg.localTest && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});

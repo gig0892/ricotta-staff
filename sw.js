@@ -1,7 +1,7 @@
 // Keeps the app opening when the store Wi-Fi drops. App files: network first, cache as fallback.
 // Fonts: cache first. Database calls are never cached.
-const CACHE = 'ricotta-202610070529';
-const SHELL = ['./', 'index.html', 'app.js', 'payroll.js', 'config.js', 'vendor/supabase.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
+const CACHE = 'ricotta-20261007140407257';
+const SHELL = ['./', 'index.html', 'app.js', 'payroll.js', 'store-time.mjs', 'money.mjs', 'reliability.mjs', 'payroll-export.mjs', 'vendor/vancouver-tz.js', 'config.js', 'vendor/supabase.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -29,7 +29,7 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   let m = {};
   try { m = e.data ? e.data.json() : {}; } catch { m = { title: 'Cafe Ricotta', body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(m.title || 'Cafe Ricotta', { body: m.body || '', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: m.url || './#orders' } }));
+  e.waitUntil(self.registration.showNotification(m.title || 'Cafe Ricotta', { body: m.body || '', tag: m.tag || undefined, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: m.url || './#orders' } }));
 });
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
